@@ -1,6 +1,6 @@
 const { express, cors, helmet } = require("./configs/importModules")
 const errors = require("./configs/error")
-//const middleware = require("./apis/middleware/middleware");
+//const middleware = require("./middleware/middleware");
 const app = express()
 const ALLOWED_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
 const ALLOWED_HEADERS = ['X-Requested-With', 'Content-Type', 'Authorization', 'x-api-key', 'x-app-version'];
@@ -60,7 +60,7 @@ app.use((req, res, next) => {
 // app.use(middleware.apiKeyVerification);
 // app.use(middleware.jwtVerification);
 
-app.use("/v1/", require("./apis/routes/router"));
+app.use("/v1/", require("./routes/router"));
 
 //app.use(middleware.gErrorHandler);
 
