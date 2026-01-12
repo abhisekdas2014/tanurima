@@ -5,9 +5,10 @@ const {
   Customer,
   Item,
   Stock,
-  StockMovement
+  StockMovement,
+  OrderPayment
 } = require("../models");
-const { Op } = require("sequelize");
+const { Op,literal } = require("sequelize");
 // exports.create = async (req, res) => {
 //   const t = await sequelize.transaction();
 
@@ -158,9 +159,9 @@ exports.create = async (req, res) => {
   }
 };
 
+
 exports.getAll = async (req, res) => {
   const search = req.query.search || "";
-
   const page = Number(req.query.page || 1);
   const limit = 10;
   const offset = (page - 1) * limit;
@@ -168,20 +169,52 @@ exports.getAll = async (req, res) => {
   const { rows, count } = await Order.findAndCountAll({
     where: search
       ? {
-        [Op.or]: [
-          { billNo: { [Op.like]: `%${search}%` } },
-          { "$customer.name$": { [Op.like]: `%${search}%` } }
-        ]
-      }
+          [Op.or]: [
+            { billNo: { [Op.like]: `%${search}%` } },
+            { "$customer.name$": { [Op.like]: `%${search}%` } }
+          ]
+        }
       : {},
-    include: [{ model: Customer, as: "customer" }],
+    include: [
+      { model: Customer, as: "customer" },
+      {
+        model: OrderPayment,
+        as: "payments",
+        attributes: []
+      }
+    ],
+    attributes: {
+      include: [
+    [literal("(SELECT IFNULL(SUM(amount),0) FROM order_payments WHERE order_payments.orderId = Order.id)"), "paidAmount"],
+    [literal("(totalAmount - (SELECT IFNULL(SUM(amount),0) FROM order_payments WHERE order_payments.orderId = Order.id))"), "dueAmount"]
+  ]
+    },
     order: [["id", "DESC"]],
     limit,
-    offset
+    offset,
+    subQuery: false
+  });
+
+  const data = rows.map(o => {
+    const total = Number(o.getDataValue("totalAmount")) || 0;
+    const paid = Number(o.getDataValue("paidAmount")) || 0;
+    const due = Math.max(total - paid, 0);
+
+    let status = "unpaid";
+    if (paid > 0 && due > 0) status = "partial";
+    if (due === 0 && total > 0) status = "paid";
+
+    return {
+      ...o.toJSON(),
+      totalAmount: total,
+      paidAmount: paid,
+      dueAmount: due,
+      paymentStatus: status
+    };
   });
 
   res.json({
-    data: rows,
+    data,
     pagination: {
       total: count,
       page,
@@ -189,6 +222,7 @@ exports.getAll = async (req, res) => {
     }
   });
 };
+
 exports.getOne = async (req, res) => {
   const id = Number(req.params.id);
   if (!id) return res.status(400).json({ message: "Invalid order id" });

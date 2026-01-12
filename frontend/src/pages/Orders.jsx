@@ -77,9 +77,13 @@ export default function Orders() {
   ====================== */
   useEffect(() => {
     api.get("/customers").then(r => setCustomers(r.data));
-    api.get("/stock").then(r => setStock(r.data));
+    loadStock();
     loadOrders();
   }, [page]);
+  const loadStock = async () => {
+    const res = await api.get("/stock");
+    setStock(res.data);
+  };
 
   /* ======================
      LOAD ORDERS
@@ -94,11 +98,25 @@ export default function Orders() {
      CREATE ORDER
   ====================== */
   const addItem = () => {
+    // Header validation first
+    if (!header.billNo || !header.billDate) {
+      alert("Bill No and Bill Date are required before adding items");
+      return;
+    }
+
+    // Item validation
     if (!currentItem.itemId || !currentItem.qty || !currentItem.sellingPrice) {
       alert("Fill item details");
       return;
     }
-    const exists = items.some(i => i.itemId === currentItem.itemId);
+
+    // Duplicate check: itemId + buyingPrice
+    const exists = items.some(
+      i =>
+        i.itemId === currentItem.itemId &&
+        Number(i.buyingPrice) === Number(currentItem.buyingPrice)
+    );
+
     if (exists) {
       alert("Item already added. Update quantity instead.");
       return;
@@ -174,7 +192,8 @@ export default function Orders() {
     try {
       await api.post("/orders", fd);
       alert("Order created");
-      loadOrders();
+      await loadOrders();
+      await loadStock();
     } catch (err) {
       alert(err.response?.data?.message || "Create failed");
     }
@@ -227,7 +246,8 @@ export default function Orders() {
 
     await api.put(`/orders/${editHeader.id}`, fd);
     setShowEdit(false);
-    loadOrders();
+    await loadOrders();
+  await loadStock();
   };
 
 
@@ -238,7 +258,8 @@ export default function Orders() {
   const removeOrder = async id => {
     if (!confirm("Delete this order?")) return;
     await api.delete(`/orders/${id}`);
-    loadOrders();
+    await loadOrders();
+    await loadStock();
   };
 
   return (
@@ -369,85 +390,97 @@ export default function Orders() {
       {/* ================= ORDER LIST ================= */}
       <h4>Orders</h4>
 
-      <input className="form-control w-25 mb-3"
-        placeholder="Search Bill / Customer"
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-        onKeyUp={loadOrders} />
+<input
+  className="form-control w-25 mb-3"
+  placeholder="Search Bill / Customer"
+  value={search}
+  onChange={e => setSearch(e.target.value)}
+  onKeyUp={loadOrders}
+/>
 
-      <table className="table table-bordered">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Bill</th>
-            <th>Customer</th>
-            <th>Date</th>
-            <th></th>
-            <th width="220">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {orders.map(o => (
-            <tr key={o.id}>
-              <td>{o.id}</td>
-              <td>{o.billNo}</td>
-              <td>{o.customer?.name}</td>
-              <td>{o.billDate}</td>
-              <td>
-                <span
-                  className={`badge ${o.paymentStatus === "paid"
-                    ? "bg-success"
-                    : o.paymentStatus === "partial"
-                      ? "bg-warning text-dark"
-                      : "bg-danger"
-                    }`}
-                >
-                  {o.paymentStatus || "unpaid"}
-                </span>
-              </td>
-              <td className="d-flex gap-1">
-                <button
-                  className="btn btn-sm btn-primary"
-                  disabled={o.dueAmount === 0}
-                  onClick={() => openEdit(o.id)}
-                >
-                  Edit
-                </button>
+<table className="table table-bordered">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Bill</th>
+      <th>Customer</th>
+      <th>Date</th>
+      <th>Status</th>
+      <th>Due</th>
+      <th width="240">Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {orders.map(o => {
+      const isPaid = o.paymentStatus === "paid";
 
-                <button
-                  className="btn btn-sm btn-info"
-                  onClick={() => openInvoice(o.id)}
-                >
-                  Invoice
-                </button>
+      return (
+        <tr key={o.id}>
+          <td>{o.id}</td>
+          <td>{o.billNo}</td>
+          <td>{o.customer?.name}</td>
+          <td>{o.billDate}</td>
 
-                <button
-                  className="btn btn-sm btn-warning"
-                  disabled={o.dueAmount === 0}
-                  onClick={() => openPayment(o)}
-                >
-                  Pay
-                </button>
+          <td>
+            <span
+              className={`badge ${
+                o.paymentStatus === "paid"
+                  ? "bg-success"
+                  : o.paymentStatus === "partial"
+                  ? "bg-warning text-dark"
+                  : "bg-danger"
+              }`}
+            >
+              {o.paymentStatus || "unpaid"}
+            </span>
+          </td>
 
-                <button
-                  className="btn btn-sm btn-danger"
-                  disabled={o.dueAmount === 0}
-                  onClick={async () => {
-                    if (confirm("Delete this order?")) {
-                      await api.delete(`/orders/${o.id}`);
-                      loadOrders();
-                    }
-                  }}
-                >
-                  Delete
-                </button>
-              </td>
+          <td>
+            <b>₹{o.dueAmount ?? 0}</b>
+          </td>
 
+          <td className="d-flex gap-1">
+            <button
+              className="btn btn-sm btn-primary"
+              disabled={isPaid}
+              onClick={() => openEdit(o.id)}
+            >
+              Edit
+            </button>
 
-            </tr>
-          ))}
-        </tbody>
-      </table>
+            <button
+              className="btn btn-sm btn-info"
+              onClick={() => openInvoice(o.id)}
+            >
+              Invoice
+            </button>
+
+            <button
+              className="btn btn-sm btn-warning"
+              disabled={isPaid}
+              onClick={() => openPayment(o)}
+            >
+              Pay
+            </button>
+
+            <button
+              className="btn btn-sm btn-danger"
+              disabled={isPaid}
+              onClick={async () => {
+                if (confirm("Delete this order?")) {
+                  await api.delete(`/orders/${o.id}`);
+                  loadOrders();
+                }
+              }}
+            >
+              Delete
+            </button>
+          </td>
+        </tr>
+      );
+    })}
+  </tbody>
+</table>
 
       {/* ================= EDIT MODAL ================= */}
       {showEdit && (
