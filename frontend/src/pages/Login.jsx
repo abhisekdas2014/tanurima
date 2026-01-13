@@ -30,7 +30,7 @@ export default function Login() {
   return (
     <div className="login-page">
       <div className="login-card">
-        <h3 className="text-center mb-1">Tanurima Admin</h3>
+        <h3 className="text-center mb-1">Subham Admin</h3>
         <p className="text-center text-muted mb-4">
           Sign in to continue
         </p>
@@ -78,7 +78,7 @@ export default function Login() {
         </form>
 
         <div className="text-center mt-3 text-muted small">
-          © {new Date().getFullYear()} Tanurima
+          © {new Date().getFullYear()} Subham
         </div>
       </div>
     </div>

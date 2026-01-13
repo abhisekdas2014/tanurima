@@ -84,7 +84,13 @@ export default function Orders() {
     const res = await api.get("/stock");
     setStock(res.data);
   };
+useEffect(() => {
+  const t = setTimeout(() => {
+    loadOrders();
+  }, 400);
 
+  return () => clearTimeout(t);
+}, [search, page]);
   /* ======================
      LOAD ORDERS
   ====================== */
@@ -235,7 +241,6 @@ export default function Orders() {
       }
     ]);
   };
-  console.log(editItems);
   const saveEdit = async () => {
     const fd = new FormData();
     fd.append("billNo", editHeader.billNo);
@@ -247,7 +252,7 @@ export default function Orders() {
     await api.put(`/orders/${editHeader.id}`, fd);
     setShowEdit(false);
     await loadOrders();
-  await loadStock();
+    await loadStock();
   };
 
 
@@ -267,45 +272,54 @@ export default function Orders() {
       <h4>Create Order</h4>
 
       {/* ================= CREATE FORM ================= */}
-      <form className="card p-4 mb-4" onSubmit={submit}>
+      <form className="card p-3 p-md-4 mb-4" onSubmit={submit}>
         <div className="row g-3">
-          <div className="col-md-4">
+          <div className="col-12 col-md-4">
             <select className="form-select"
               value={header.customerId}
               onChange={e => setHeader({ ...header, customerId: e.target.value })}>
               <option value="">Select Customer</option>
-              {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              {customers.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
             </select>
           </div>
 
-          <div className="col-md-4">
-            <input className="form-control" placeholder="Bill No"
+          <div className="col-12 col-md-4">
+            <input className="form-control"
+              placeholder="Bill No"
               value={header.billNo}
-              onChange={e => setHeader({ ...header, billNo: e.target.value })} />
+              onChange={e => setHeader({ ...header, billNo: e.target.value })}
+            />
           </div>
 
-          <div className="col-md-4">
+          <div className="col-12 col-md-4">
             <input type="date" className="form-control"
               value={header.billDate}
-              onChange={e => setHeader({ ...header, billDate: e.target.value })} />
+              onChange={e => setHeader({ ...header, billDate: e.target.value })}
+            />
           </div>
 
-          <div className="col-md-6">
-            <textarea className="form-control" placeholder="Comments"
+          <div className="col-12 col-md-6">
+            <textarea className="form-control"
+              placeholder="Comments"
               value={header.comments}
-              onChange={e => setHeader({ ...header, comments: e.target.value })} />
+              onChange={e => setHeader({ ...header, comments: e.target.value })}
+            />
           </div>
 
-          <div className="col-md-6">
+          <div className="col-12 col-md-6">
             <input type="file" className="form-control"
-              onChange={e => setHeader({ ...header, billImage: e.target.files[0] })} />
+              onChange={e => setHeader({ ...header, billImage: e.target.files[0] })}
+            />
           </div>
         </div>
+
 
         <hr />
 
         <div className="row g-3 align-items-end">
-          <div className="col-md-4">
+          <div className="col-12 col-md-4">
             <select className="form-select"
               value={currentItem.stockId}
               onChange={e => {
@@ -323,65 +337,70 @@ export default function Orders() {
               <option>Select Item</option>
               {stock.map(s => (
                 <option key={s.id} value={s.id}>
-                  {s.item.name} | ₹{s.buyingPrice}| qty {s.qty}
+                  {s.item.name} | ₹{s.buyingPrice} | qty {s.qty}
                 </option>
               ))}
             </select>
           </div>
 
-          <div className="col-md-2">
+          <div className="col-6 col-md-2">
             <input className="form-control" type="number"
               value={currentItem.qty}
-              onChange={e => setCurrentItem({ ...currentItem, qty: e.target.value })} />
+              onChange={e => setCurrentItem({ ...currentItem, qty: e.target.value })}
+            />
           </div>
 
-          <div className="col-md-2">
+          <div className="col-6 col-md-2">
             <input className="form-control" type="number"
               value={currentItem.sellingPrice}
-              onChange={e => setCurrentItem({ ...currentItem, sellingPrice: e.target.value })} />
+              onChange={e => setCurrentItem({ ...currentItem, sellingPrice: e.target.value })}
+            />
           </div>
 
-          <div className="col-md-2">
+          <div className="col-12 col-md-2 d-grid">
             <button type="button" className="btn btn-primary" onClick={addItem}>
               Add Item
             </button>
           </div>
         </div>
+
         {items.length > 0 && (
-          <table className="table table-bordered mt-3">
-            <thead className="table-dark">
-              <tr>
-                <th>Item</th>
-                <th>Buy</th>
-                <th>Sell</th>
-                <th>Qty</th>
-                <th>Total</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((i, idx) => (
-                <tr key={idx}>
-                  <td>{i.itemName}</td>
-                  <td>{i.buyingPrice}</td>
-                  <td>{i.sellingPrice}</td>
-                  <td>{i.qty}</td>
-                  <td>{i.qty * i.sellingPrice}</td>
-                  <td>
-                    <button
-                      type="button"
-                      className="btn btn-danger btn-sm"
-                      onClick={() =>
-                        setItems(items.filter((_, x) => x !== idx))
-                      }
-                    >
-                      ✕
-                    </button>
-                  </td>
+          <div className="table-responsive mt-3">
+            <table className="table table-bordered">
+              <thead className="table-dark">
+                <tr>
+                  <th>Item</th>
+                  <th>Buy</th>
+                  <th>Sell</th>
+                  <th>Qty</th>
+                  <th>Total</th>
+                  <th></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {items.map((i, idx) => (
+                  <tr key={idx}>
+                    <td>{i.itemName}</td>
+                    <td>{i.buyingPrice}</td>
+                    <td>{i.sellingPrice}</td>
+                    <td>{i.qty}</td>
+                    <td>{i.qty * i.sellingPrice}</td>
+                    <td>
+                      <button
+                        type="button"
+                        className="btn btn-danger btn-sm"
+                        onClick={() =>
+                          setItems(items.filter((_, x) => x !== idx))
+                        }
+                      >
+                        ✕
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
 
         <button className="btn btn-success mt-3">Create Order</button>
@@ -390,155 +409,193 @@ export default function Orders() {
       {/* ================= ORDER LIST ================= */}
       <h4>Orders</h4>
 
-<input
-  className="form-control w-25 mb-3"
-  placeholder="Search Bill / Customer"
-  value={search}
-  onChange={e => setSearch(e.target.value)}
-  onKeyUp={loadOrders}
-/>
+      <div className="row mb-3">
+  <div className="col-12 col-md-3">
+    <input
+      className="form-control"
+      placeholder="Search Bill / Customer"
+      value={search}
+      onChange={e => setSearch(e.target.value)}
+    />
+  </div>
+</div>
+      <div className="table-responsive d-none d-md-block">
+        <table className="table table-bordered">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Bill</th>
+              <th>Customer</th>
+              <th>Date</th>
+              <th>Status</th>
+              <th>Due</th>
+              <th width="240">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {orders.map(o => {
+              const isPaid = o.paymentStatus === "paid";
+              return (
+                <tr key={o.id}>
+                  <td>{o.id}</td>
+                  <td>{o.billNo}</td>
+                  <td>{o.customer?.name}</td>
+                  <td>{o.billDate}</td>
+                  <td>
+                    <span className={`badge ${o.paymentStatus === "paid"
+                        ? "bg-success"
+                        : o.paymentStatus === "partial"
+                          ? "bg-warning text-dark"
+                          : "bg-danger"
+                      }`}>
+                      {o.paymentStatus || "unpaid"}
+                    </span>
+                  </td>
+                  <td><b>₹{o.dueAmount ?? 0}</b></td>
+                  <td className="d-flex gap-1">
+                    <button className="btn btn-sm btn-primary" disabled={isPaid} onClick={() => openEdit(o.id)}>Edit</button>
+                    <button className="btn btn-sm btn-info" onClick={() => openInvoice(o.id)}>Invoice</button>
+                    <button className="btn btn-sm btn-warning" disabled={isPaid} onClick={() => openPayment(o)}>Pay</button>
+                    <button className="btn btn-sm btn-danger" disabled={isPaid} onClick={() => removeOrder(o.id)}>Delete</button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {/* ===== MOBILE CARDS ===== */}
+<div className="d-md-none">
+  {orders.map(o => {
+    const isPaid = o.paymentStatus === "paid";
+    return (
+      <div key={o.id} className="border rounded p-3 mb-2">
+        <div className="d-flex justify-content-between mb-1">
+          <b>{o.billNo}</b>
+          <span className={`badge ${
+            o.paymentStatus === "paid"
+              ? "bg-success"
+              : o.paymentStatus === "partial"
+              ? "bg-warning text-dark"
+              : "bg-danger"
+          }`}>
+            {o.paymentStatus || "unpaid"}
+          </span>
+        </div>
 
-<table className="table table-bordered">
-  <thead>
-    <tr>
-      <th>ID</th>
-      <th>Bill</th>
-      <th>Customer</th>
-      <th>Date</th>
-      <th>Status</th>
-      <th>Due</th>
-      <th width="240">Actions</th>
-    </tr>
-  </thead>
-  <tbody>
-    {orders.map(o => {
-      const isPaid = o.paymentStatus === "paid";
+        <div className="small text-muted">{o.customer?.name}</div>
+        <div className="small">{o.billDate}</div>
 
-      return (
-        <tr key={o.id}>
-          <td>{o.id}</td>
-          <td>{o.billNo}</td>
-          <td>{o.customer?.name}</td>
-          <td>{o.billDate}</td>
+        <div className="d-flex justify-content-between mt-2">
+          <span>Due</span>
+          <b>₹{o.dueAmount ?? 0}</b>
+        </div>
 
-          <td>
-            <span
-              className={`badge ${
-                o.paymentStatus === "paid"
-                  ? "bg-success"
-                  : o.paymentStatus === "partial"
-                  ? "bg-warning text-dark"
-                  : "bg-danger"
-              }`}
-            >
-              {o.paymentStatus || "unpaid"}
-            </span>
-          </td>
-
-          <td>
-            <b>₹{o.dueAmount ?? 0}</b>
-          </td>
-
-          <td className="d-flex gap-1">
-            <button
-              className="btn btn-sm btn-primary"
-              disabled={isPaid}
-              onClick={() => openEdit(o.id)}
-            >
-              Edit
-            </button>
-
-            <button
-              className="btn btn-sm btn-info"
-              onClick={() => openInvoice(o.id)}
-            >
-              Invoice
-            </button>
-
-            <button
-              className="btn btn-sm btn-warning"
-              disabled={isPaid}
-              onClick={() => openPayment(o)}
-            >
-              Pay
-            </button>
-
-            <button
-              className="btn btn-sm btn-danger"
-              disabled={isPaid}
-              onClick={async () => {
-                if (confirm("Delete this order?")) {
-                  await api.delete(`/orders/${o.id}`);
-                  loadOrders();
-                }
-              }}
-            >
-              Delete
-            </button>
-          </td>
-        </tr>
-      );
-    })}
-  </tbody>
-</table>
-
+        <div className="d-grid gap-2 mt-3">
+          <button className="btn btn-outline-primary btn-sm" disabled={isPaid} onClick={() => openEdit(o.id)}>Edit</button>
+          <button className="btn btn-outline-info btn-sm" onClick={() => openInvoice(o.id)}>Invoice</button>
+          <button className="btn btn-outline-warning btn-sm" disabled={isPaid} onClick={() => openPayment(o)}>Pay</button>
+          <button className="btn btn-outline-danger btn-sm" disabled={isPaid} onClick={() => removeOrder(o.id)}>Delete</button>
+        </div>
+      </div>
+    );
+  })}
+</div>
       {/* ================= EDIT MODAL ================= */}
       {showEdit && (
         <div className="modal show d-block" style={{ background: "#0008" }}>
-          <div className="modal-dialog modal-lg">
+          <div className="modal-dialog modal-lg modal-fullscreen-sm-down">
             <div className="modal-content p-3">
-              <h5>Edit Order</h5>
 
-              <input className="form-control mb-2"
+              {/* ===== HEADER ===== */}
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h5 className="m-0">Edit Order</h5>
+                <button className="btn-close" onClick={() => setShowEdit(false)} />
+              </div>
+
+              {/* ===== BASIC INFO ===== */}
+              <input
+                className="form-control mb-2"
+                placeholder="Bill No"
                 value={editHeader.billNo}
-                onChange={e => setEditHeader({ ...editHeader, billNo: e.target.value })} />
+                onChange={e =>
+                  setEditHeader({ ...editHeader, billNo: e.target.value })
+                }
+              />
 
-              <textarea className="form-control mb-2"
+              <textarea
+                className="form-control mb-2"
+                placeholder="Comments"
                 value={editHeader.comments || ""}
-                onChange={e => setEditHeader({ ...editHeader, comments: e.target.value })} />
+                onChange={e =>
+                  setEditHeader({ ...editHeader, comments: e.target.value })
+                }
+              />
 
-              <input type="file" className="form-control mb-3"
-                onChange={e => setEditImage(e.target.files[0])} />
+              <input
+                type="file"
+                className="form-control mb-3"
+                onChange={e => setEditImage(e.target.files[0])}
+              />
 
+              {/* ===== EDIT ITEMS ===== */}
               {editItems.map((i, idx) => (
-                <div className="row g-2 mb-2" key={idx}>
-                  <div className="col">{i.item?.name}</div>
-                  <div className="col">
-                    <input className="form-control"
-                      value={i.qty}
-                      onChange={e => {
-                        const x = [...editItems];
-                        x[idx].qty = e.target.value;
-                        setEditItems(x);
-                      }} />
-                  </div>
-                  <div className="col">
-                    <input className="form-control"
-                      value={i.sellingPrice}
-                      onChange={e => {
-                        const x = [...editItems];
-                        x[idx].sellingPrice = e.target.value;
-                        setEditItems(x);
-                      }} />
-                  </div>
+                <div
+                  key={idx}
+                  className="border rounded p-2 mb-2"
+                >
+                  <div className="fw-bold mb-2">{i.item?.name}</div>
 
-                  <div className="col-auto">
-                    <button className="btn btn-danger btn-sm"
-                      onClick={() =>
-                        setEditItems(editItems.filter((_, i2) => i2 !== idx))
-                      }>
-                      ✕
-                    </button>
+                  <div className="row g-2">
+                    <div className="col-6">
+                      <input
+                        className="form-control"
+                        placeholder="Qty"
+                        value={i.qty}
+                        onChange={e => {
+                          const x = [...editItems];
+                          x[idx].qty = e.target.value;
+                          setEditItems(x);
+                        }}
+                      />
+                    </div>
+
+                    <div className="col-6">
+                      <input
+                        className="form-control"
+                        placeholder="Price"
+                        value={i.sellingPrice}
+                        onChange={e => {
+                          const x = [...editItems];
+                          x[idx].sellingPrice = e.target.value;
+                          setEditItems(x);
+                        }}
+                      />
+                    </div>
+
+                    <div className="col-12 text-end">
+                      <button
+                        className="btn btn-danger btn-sm"
+                        onClick={() =>
+                          setEditItems(editItems.filter((_, i2) => i2 !== idx))
+                        }
+                      >
+                        Remove
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
 
               <hr />
+
+              {/* ===== ADD ITEM ===== */}
               <h6>Add Item</h6>
 
               <div className="row g-2 mb-3">
-                <div className="col-md-5">
-                  <select className="form-select"
+                <div className="col-12 col-md-5">
+                  <select
+                    className="form-select"
                     value={editNewItem.stockId}
                     onChange={e => {
                       const s = stock.find(x => x.id == e.target.value);
@@ -551,106 +608,186 @@ export default function Orders() {
                         sellingPrice: s.buyingPrice,
                         qty: 1
                       });
-                    }}>
+                    }}
+                  >
                     <option value="">Select item</option>
                     {stock.map(s => (
                       <option key={s.id} value={s.id}>
-                        {s.item.name} | ₹{s.buyingPrice}| qty {s.qty}
+                        {s.item.name} | ₹{s.buyingPrice}
                       </option>
                     ))}
                   </select>
                 </div>
 
-                <div className="col-md-2">
-                  <input type="number" className="form-control"
+                <div className="col-6 col-md-2">
+                  <input
+                    type="number"
+                    className="form-control"
+                    placeholder="Qty"
                     value={editNewItem.qty}
-                    onChange={e => setEditNewItem({ ...editNewItem, qty: e.target.value })} />
-                </div>
-
-                <div className="col-md-3">
-                  <input type="number" className="form-control"
-                    value={editNewItem.sellingPrice}
-                    onChange={e => setEditNewItem({ ...editNewItem, sellingPrice: e.target.value })} />
-                </div>
-
-                <div className="col-md-2">
-                  <button type="button" className="btn btn-primary w-100" onClick={(e) => {
-                    e.preventDefault();
-
-                    if (!editNewItem.itemId || !editNewItem.qty) {
-                      alert("Select item and qty");
-                      return;
+                    onChange={e =>
+                      setEditNewItem({ ...editNewItem, qty: e.target.value })
                     }
+                  />
+                </div>
 
-                    setEditItems(prev => [
-                      ...prev,
-                      {
-                        itemId: editNewItem.itemId,
-                        item: { name: editNewItem.itemName },
-                        qty: Number(editNewItem.qty),
-                        buyingPrice: Number(editNewItem.buyingPrice),
-                        sellingPrice: Number(editNewItem.sellingPrice)
+                <div className="col-6 col-md-3">
+                  <input
+                    type="number"
+                    className="form-control"
+                    placeholder="Price"
+                    value={editNewItem.sellingPrice}
+                    onChange={e =>
+                      setEditNewItem({
+                        ...editNewItem,
+                        sellingPrice: e.target.value
+                      })
+                    }
+                  />
+                </div>
+
+                <div className="col-12 col-md-2">
+                  <button
+                    type="button"
+                    className="btn btn-primary w-100"
+                    onClick={e => {
+                      e.preventDefault();
+
+                      if (!editNewItem.itemId || !editNewItem.qty) {
+                        alert("Select item and qty");
+                        return;
                       }
-                    ]);
 
-                    setEditNewItem({
-                      stockId: "",
-                      itemId: "",
-                      itemName: "",
-                      sellingPrice: "",
-                      qty: ""
-                    });
-                  }}>
+                      setEditItems(prev => [
+                        ...prev,
+                        {
+                          itemId: editNewItem.itemId,
+                          item: { name: editNewItem.itemName },
+                          qty: Number(editNewItem.qty),
+                          buyingPrice: Number(editNewItem.buyingPrice),
+                          sellingPrice: Number(editNewItem.sellingPrice)
+                        }
+                      ]);
+
+                      setEditNewItem({
+                        stockId: "",
+                        itemId: "",
+                        itemName: "",
+                        sellingPrice: "",
+                        qty: ""
+                      });
+                    }}
+                  >
                     Add
                   </button>
-
                 </div>
               </div>
 
-
-
-              <div className="text-end mt-3">
-                <button className="btn btn-secondary me-2" onClick={() => setShowEdit(false)}>Cancel</button>
-                <button className="btn btn-success" onClick={saveEdit}>Save</button>
+              {/* ===== ACTIONS ===== */}
+              <div className="d-flex flex-column flex-md-row gap-2 mt-3">
+                <button
+                  className="btn btn-secondary w-100"
+                  onClick={() => setShowEdit(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn btn-success w-100"
+                  onClick={saveEdit}
+                >
+                  Save
+                </button>
               </div>
+
             </div>
           </div>
         </div>
       )}
 
+
       {showInvoice && invoiceData && (
         <div className="modal show d-block" style={{ background: "#0008" }}>
-          <div className="modal-dialog modal-lg">
+          <div className="modal-dialog modal-lg modal-fullscreen-sm-down">
             <div className="modal-content">
+
+              {/* ===== HEADER ===== */}
               <div className="modal-header">
-                <h5>Invoice #{invoiceData.billNo}</h5>
-                <button className="btn-close" onClick={() => setShowInvoice(false)} />
+                <h5 className="modal-title">
+                  Invoice #{invoiceData.billNo}
+                </h5>
+                <button
+                  className="btn-close"
+                  onClick={() => setShowInvoice(false)}
+                />
               </div>
 
+              {/* ===== BODY ===== */}
               <div className="modal-body">
-                <p><b>Customer:</b> {invoiceData.customer?.name}</p>
-                <p><b>Date:</b> {invoiceData.billDate}</p>
 
-                <table className="table table-bordered">
-                  <thead>
+                <div className="mb-3">
+                  <p className="mb-1">
+                    <b>Customer:</b> {invoiceData.customer?.name}
+                  </p>
+                  <p className="mb-0">
+                    <b>Date:</b> {invoiceData.billDate}
+                  </p>
+                </div>
+
+                {/* ===== DESKTOP TABLE ===== */}
+                <table className="table table-bordered d-none d-md-table">
+                  <thead className="table-light">
                     <tr>
                       <th>Item</th>
-                      <th>Price</th>
-                      <th>Qty</th>
-                      <th>Total</th>
+                      <th className="text-end">Price</th>
+                      <th className="text-end">Qty</th>
+                      <th className="text-end">Total</th>
                     </tr>
                   </thead>
                   <tbody>
                     {invoiceData.items.map((i, idx) => (
                       <tr key={idx}>
                         <td>{i.item?.name}</td>
-                        <td>{i.sellingPrice}</td>
-                        <td>{i.qty}</td>
-                        <td>{i.qty * i.sellingPrice}</td>
+                        <td className="text-end">₹{i.sellingPrice}</td>
+                        <td className="text-end">{i.qty}</td>
+                        <td className="text-end">
+                          ₹{i.qty * i.sellingPrice}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+
+                {/* ===== MOBILE CARDS ===== */}
+                <div className="d-md-none">
+                  {invoiceData.items.map((i, idx) => (
+                    <div
+                      key={idx}
+                      className="border rounded p-2 mb-2"
+                    >
+                      <div className="fw-bold mb-1">
+                        {i.item?.name}
+                      </div>
+
+                      <div className="d-flex justify-content-between">
+                        <span>Price</span>
+                        <span>₹{i.sellingPrice}</span>
+                      </div>
+
+                      <div className="d-flex justify-content-between">
+                        <span>Qty</span>
+                        <span>{i.qty}</span>
+                      </div>
+
+                      <div className="d-flex justify-content-between fw-bold">
+                        <span>Total</span>
+                        <span>
+                          ₹{i.qty * i.sellingPrice}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
               </div>
             </div>
           </div>
@@ -658,12 +795,13 @@ export default function Orders() {
       )}
 
 
+
       {showPayment && paymentOrder && (
         <div className="modal show d-block" style={{ background: "#0008" }}>
-          <div className="modal-dialog">
+          <div className="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
             <div className="modal-content">
 
-              {/* ===== MODAL HEADER ===== */}
+              {/* ===== HEADER ===== */}
               <div className="modal-header">
                 <h5 className="modal-title">
                   Payment – Bill {paymentOrder.billNo}
@@ -675,74 +813,112 @@ export default function Orders() {
                 />
               </div>
 
-              {/* ===== MODAL BODY ===== */}
+              {/* ===== BODY ===== */}
               <div className="modal-body">
-                <p><b>Total:</b> ₹{paymentOrder.totalAmount}</p>
-                <p><b>Paid:</b> ₹{paymentOrder.paidAmount}</p>
-                <p>
-                  <b>Status:</b>{" "}
-                  <span className={`badge ${paymentOrder.paymentStatus === "paid"
-                      ? "bg-success"
-                      : paymentOrder.paymentStatus === "partial"
-                        ? "bg-warning"
-                        : "bg-danger"
-                    }`}>
-                    {paymentOrder.paymentStatus}
-                  </span>
-                </p>
 
-                <input
-                  className="form-control mb-2"
-                  placeholder="Amount"
-                  value={paymentForm.amount}
-                  onChange={e =>
-                    setPaymentForm({ ...paymentForm, amount: e.target.value })
-                  }
-                />
+                {/* SUMMARY */}
+                <div className="border rounded p-3 mb-3">
+                  <div className="d-flex justify-content-between">
+                    <span>Total</span>
+                    <b>₹{paymentOrder.totalAmount}</b>
+                  </div>
 
-                <select
-                  className="form-select mb-2"
-                  value={paymentForm.paymentMode}
-                  onChange={e =>
-                    setPaymentForm({ ...paymentForm, paymentMode: e.target.value })
-                  }
-                >
-                  <option value="cash">Cash</option>
-                  <option value="online">Online</option>
-                </select>
+                  <div className="d-flex justify-content-between">
+                    <span>Paid</span>
+                    <b>₹{paymentOrder.paidAmount}</b>
+                  </div>
 
-                <input
-                  type="date"
-                  className="form-control mb-2"
-                  value={paymentForm.paidOn}
-                  onChange={e =>
-                    setPaymentForm({ ...paymentForm, paidOn: e.target.value })
-                  }
-                />
+                  <div className="d-flex justify-content-between align-items-center mt-2">
+                    <span>Status</span>
+                    <span
+                      className={`badge ${paymentOrder.paymentStatus === "paid"
+                        ? "bg-success"
+                        : paymentOrder.paymentStatus === "partial"
+                          ? "bg-warning text-dark"
+                          : "bg-danger"
+                        }`}
+                    >
+                      {paymentOrder.paymentStatus}
+                    </span>
+                  </div>
+                </div>
+
+                {/* ADD PAYMENT */}
+                <div className="mb-3">
+                  <label className="form-label">Amount</label>
+                  <input
+                    type="number"
+                    className="form-control"
+                    placeholder="Enter amount"
+                    value={paymentForm.amount}
+                    onChange={e =>
+                      setPaymentForm({ ...paymentForm, amount: e.target.value })
+                    }
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">Payment Mode</label>
+                  <select
+                    className="form-select"
+                    value={paymentForm.paymentMode}
+                    onChange={e =>
+                      setPaymentForm({ ...paymentForm, paymentMode: e.target.value })
+                    }
+                  >
+                    <option value="cash">Cash</option>
+                    <option value="online">Online</option>
+                  </select>
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">Paid On</label>
+                  <input
+                    type="date"
+                    className="form-control"
+                    value={paymentForm.paidOn}
+                    onChange={e =>
+                      setPaymentForm({ ...paymentForm, paidOn: e.target.value })
+                    }
+                  />
+                </div>
 
                 <button
-                  className="btn btn-success w-100"
+                  className="btn btn-success w-100 mb-3"
                   onClick={savePayment}
                 >
                   Add Payment
                 </button>
 
-                <hr />
+                {/* PAYMENT HISTORY */}
+                <h6 className="mt-3">Payment History</h6>
 
-                <h6>Payment History</h6>
-                <ul className="list-group">
-                  {payments.map(p => (
-                    <li className="list-group-item" key={p.id}>
-                      ₹{p.amount} – {p.paymentMode} – {p.paidOn}
-                    </li>
-                  ))}
-                </ul>
+                {payments.length === 0 ? (
+                  <p className="text-muted small">No payments yet</p>
+                ) : (
+                  <ul className="list-group">
+                    {payments.map(p => (
+                      <li
+                        key={p.id}
+                        className="list-group-item d-flex justify-content-between align-items-center"
+                      >
+                        <div>
+                          <div className="fw-bold">₹{p.amount}</div>
+                          <small className="text-muted">
+                            {p.paymentMode} · {p.paidOn}
+                          </small>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
               </div>
 
-              {/* ===== MODAL FOOTER ===== */}
-              <div className="modal-footer">
+              {/* ===== FOOTER ===== */}
+              <div className="modal-footer d-sm-none">
                 <button
-                  className="btn btn-secondary"
+                  className="btn btn-secondary w-100"
                   onClick={() => setShowPayment(false)}
                 >
                   Close
@@ -753,6 +929,7 @@ export default function Orders() {
           </div>
         </div>
       )}
+
 
 
 

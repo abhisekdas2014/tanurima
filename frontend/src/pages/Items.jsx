@@ -35,7 +35,6 @@ export default function Items() {
       setEditingId(null);
       load();
     } catch (err) {
-      console.error(err.response?.data || err.message);
       alert("Save failed");
     }
   };
@@ -47,22 +46,17 @@ export default function Items() {
 
   const deleteItem = async (id) => {
     if (!confirm("Delete this item?")) return;
-
-    try {
-      await api.delete(`/items/${id}`);
-      load();
-    } catch (err) {
-      console.error(err.response?.data || err.message);
-      alert("Delete failed");
-    }
+    await api.delete(`/items/${id}`);
+    load();
   };
 
   return (
     <Layout>
       <h4 className="mb-3">Items</h4>
 
+      {/* ================= FORM ================= */}
       <form onSubmit={submit} className="card p-3 mb-3">
-        <div className="d-flex gap-2">
+        <div className="d-flex flex-column flex-md-row gap-2">
           <input
             className="form-control"
             placeholder="Item name"
@@ -70,9 +64,11 @@ export default function Items() {
             onChange={(e) => setName(e.target.value)}
             required
           />
+
           <button className="btn btn-primary">
             {editingId ? "Update" : "Add"}
           </button>
+
           {editingId && (
             <button
               type="button"
@@ -88,37 +84,42 @@ export default function Items() {
         </div>
       </form>
 
-      <table className="table table-bordered table-striped">
-        <thead className="table-dark">
-          <tr>
-            <th width="80">ID</th>
-            <th>Name</th>
-            <th width="180">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((i) => (
-            <tr key={i.id}>
-              <td>{i.id}</td>
-              <td>{i.name}</td>
-              <td>
-                <button
-                  className="btn btn-sm btn-warning me-2"
-                  onClick={() => editItem(i)}
-                >
-                  Edit
-                </button>
-                <button
-                  className="btn btn-sm btn-danger"
-                  onClick={() => deleteItem(i.id)}
-                >
-                  Delete
-                </button>
-              </td>
+      {/* ================= TABLE ================= */}
+      <div className="table-responsive">
+        <table className="table table-bordered table-striped">
+          <thead className="table-dark">
+            <tr>
+              <th style={{ width: 80 }}>ID</th>
+              <th>Name</th>
+              <th style={{ width: 180 }}>Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {items.map((i) => (
+              <tr key={i.id}>
+                <td>{i.id}</td>
+                <td>{i.name}</td>
+                <td>
+                  <div className="d-flex flex-column flex-md-row gap-1">
+                    <button
+                      className="btn btn-sm btn-warning"
+                      onClick={() => editItem(i)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="btn btn-sm btn-danger"
+                      onClick={() => deleteItem(i.id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </Layout>
   );
 }
