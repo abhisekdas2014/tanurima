@@ -66,6 +66,11 @@ function SidebarContent({ onClick }) {
             <FaBox /> Order
           </a>
         </li>
+        <li className="nav-item">
+          <a className="nav-link text-white" href="/payment-history" onClick={onClick}>
+            <FaBox /> Payment History
+          </a>
+        </li>
       </ul>
     </>
   );

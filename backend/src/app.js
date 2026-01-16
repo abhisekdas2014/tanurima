@@ -31,6 +31,7 @@ app.use("/api/stock", require("./routes/stock.routes"));
 app.use("/api/orders", require("./routes/order.routes"));
 app.use("/api/order-payments", require("./routes/orderPayment.routes"));
 app.use("/api/dashboard", require("./routes/dashboard.routes"));
+app.use("/api/payment-history", require("./routes/paymentHistory.routes"));
 
 /* ===== HEALTH CHECK ===== */
 app.get("/", (req, res) => {

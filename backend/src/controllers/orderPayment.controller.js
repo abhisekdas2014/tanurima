@@ -1,4 +1,4 @@
-const { Order, OrderPayment, sequelize } = require("../models");
+const { Order, OrderPayment, Customer, OrderItem, Item, sequelize } = require("../models");
 
 exports.create = async (req, res) => {
   try {
@@ -57,6 +57,9 @@ exports.create = async (req, res) => {
 
 exports.getByOrder = async (req, res) => {
   const orderId = Number(req.params.orderId);
+  if (!orderId || isNaN(orderId)) {
+    return res.status(400).json({ message: "Invalid orderId" });
+  }
 
   const payments = await OrderPayment.findAll({
     where: { orderId },

@@ -5,7 +5,7 @@ import Customers from "./pages/Customers";
 import Items from "./pages/Items";
 import Stock from "./pages/Stock";
 import Orders from "./pages/Orders";
-
+import Payments from "./pages/PaymentHistory";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 export default function App() {
@@ -17,6 +17,10 @@ export default function App() {
       <Route path="/items" element={<ProtectedRoute><Items /></ProtectedRoute>} />
       <Route path="/stock" element={<ProtectedRoute><Stock /></ProtectedRoute>} />
       <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
+      <Route
+        path="/payment-history"
+        element={<ProtectedRoute><Payments /></ProtectedRoute>}
+      />
 
     </Routes>
   );
