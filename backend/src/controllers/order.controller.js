@@ -8,7 +8,26 @@ const {
   StockMovement,
   OrderPayment
 } = require("../models");
-const { Op,literal } = require("sequelize");
+const { Op, literal } = require("sequelize");
+
+const axios = require("axios");
+const FormData = require("form-data");
+const fs = require("fs");
+
+async function uploadToServer(file) {
+  const form = new FormData();
+  form.append("file", fs.createReadStream(file.path));
+
+  const response = await axios.post(
+    "https://greenscornerschool.in/billUpload.php",
+    form,
+    { headers: form.getHeaders() }
+  );
+
+  return response.data.url; // public image URL
+}
+
+
 // exports.create = async (req, res) => {
 //   const t = await sequelize.transaction();
 
@@ -102,12 +121,19 @@ exports.create = async (req, res) => {
 
     let totalAmount = 0;
 
+    // ✅ Upload image to GoDaddy server
+    let billImageUrl = null;
+    console.log(req.file);
+    if (req.file) {
+      billImageUrl = await uploadToServer(req.file);
+    }
+
     const order = await Order.create({
       customerId,
       billNo: req.body.billNo,
       billDate: req.body.billDate,
       comments: req.body.comments || null,
-      billImage: req.file ? req.file.filename : null,
+      billImage: billImageUrl,
       totalAmount: 0
     }, { transaction: t });
 
@@ -151,6 +177,11 @@ exports.create = async (req, res) => {
     await order.update({ totalAmount }, { transaction: t });
 
     await t.commit();
+    if (req.file) {
+      fs.unlink(req.file.path, err => {
+        if (err) console.error("Temp file delete failed", err);
+      });
+    }
     res.json({ message: "Order created", orderId: order.id });
 
   } catch (err) {
@@ -169,11 +200,11 @@ exports.getAll = async (req, res) => {
   const { rows, count } = await Order.findAndCountAll({
     where: search
       ? {
-          [Op.or]: [
-            { billNo: { [Op.like]: `%${search}%` } },
-            { "$customer.name$": { [Op.like]: `%${search}%` } }
-          ]
-        }
+        [Op.or]: [
+          { billNo: { [Op.like]: `%${search}%` } },
+          { "$customer.name$": { [Op.like]: `%${search}%` } }
+        ]
+      }
       : {},
     include: [
       { model: Customer, as: "customer" },
@@ -185,9 +216,9 @@ exports.getAll = async (req, res) => {
     ],
     attributes: {
       include: [
-    [literal("(SELECT IFNULL(SUM(amount),0) FROM order_payments WHERE order_payments.orderId = Order.id)"), "paidAmount"],
-    [literal("(totalAmount - (SELECT IFNULL(SUM(amount),0) FROM order_payments WHERE order_payments.orderId = Order.id))"), "dueAmount"]
-  ]
+        [literal("(SELECT IFNULL(SUM(amount),0) FROM order_payments WHERE order_payments.orderId = Order.id)"), "paidAmount"],
+        [literal("(totalAmount - (SELECT IFNULL(SUM(amount),0) FROM order_payments WHERE order_payments.orderId = Order.id))"), "dueAmount"]
+      ]
     },
     order: [["id", "DESC"]],
     limit,
