@@ -4,17 +4,20 @@ import Layout from "../layout/Layout";
 
 export default function Customers() {
   const [customers, setCustomers] = useState([]);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
   const [form, setForm] = useState({ name: "", mobileNo: "", address: "" });
   const [editingId, setEditingId] = useState(null);
-
   const loadCustomers = async () => {
-    const res = await api.get("/customers");
-    setCustomers(res.data);
+    const res = await api.get("/customers", { params: { page } });
+    setCustomers(res.data.data);
+    setPages(res.data.pagination.pages);
   };
 
   useEffect(() => {
     loadCustomers();
-  }, []);
+  }, [page]);
+
 
   const submit = async (e) => {
     e.preventDefault();
@@ -161,6 +164,26 @@ export default function Customers() {
           </tbody>
         </table>
       </div>
+      <div className="d-flex justify-content-between align-items-center mt-3">
+        <button
+          className="btn btn-sm btn-secondary"
+          disabled={page <= 1}
+          onClick={() => setPage(p => p - 1)}
+        >
+          Prev
+        </button>
+
+        <span>Page {page} of {pages}</span>
+
+        <button
+          className="btn btn-sm btn-secondary"
+          disabled={page >= pages}
+          onClick={() => setPage(p => p + 1)}
+        >
+          Next
+        </button>
+      </div>
+
     </Layout>
   );
 }

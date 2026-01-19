@@ -1,23 +1,36 @@
 const { Customer } = require("../models");
 
 exports.getAll = async (req, res) => {
-  const customers = await Customer.findAll({ order: [["id", "DESC"]] });
-  res.json(customers);
+  const page = Number(req.query.page || 1);
+  const limit = 10;
+  const offset = (page - 1) * limit;
+
+  const { count, rows } = await Customer.findAndCountAll({
+    limit,
+    offset,
+    order: [["id", "DESC"]]
+  });
+
+  const pages = Math.ceil(count / limit);
+
+  res.json({
+    data: rows,
+    pagination: {
+      total: count,
+      pages,
+      page
+    }
+  });
 };
+
 
 exports.create = async (req, res) => {
   try {
     const { name, mobileNo, address } = req.body;
 
     const customer = await Customer.create(
-      {
-        name,
-        mobileNo,
-        address
-      },
-      {
-        fields: ["name", "mobileNo", "address"] // 🔥 THIS LINE IS THE FIX
-      }
+      { name, mobileNo, address },
+      { fields: ["name", "mobileNo", "address"] }
     );
 
     res.json(customer);
@@ -27,18 +40,23 @@ exports.create = async (req, res) => {
   }
 };
 
-
-
 exports.update = async (req, res) => {
-  await Customer.update(req.body, {
-    where: { id: req.params.id }
-  });
+  await Customer.update(
+    {
+      name: req.body.name,
+      mobileNo: req.body.mobileNo,
+      address: req.body.address,
+    },
+    {
+      where: { id: req.params.id },
+    }
+  );
   res.json({ message: "Customer updated" });
 };
 
 exports.remove = async (req, res) => {
   await Customer.destroy({
-    where: { id: req.params.id }
+    where: { id: req.params.id },
   });
   res.json({ message: "Customer deleted" });
 };

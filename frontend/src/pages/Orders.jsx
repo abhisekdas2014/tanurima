@@ -76,7 +76,7 @@ export default function Orders() {
      INITIAL LOAD
   ====================== */
   useEffect(() => {
-    api.get("/customers").then(r => setCustomers(r.data));
+    api.get("/customers").then(r => setCustomers(r.data.data));
     loadStock();
     loadOrders();
   }, [page]);
