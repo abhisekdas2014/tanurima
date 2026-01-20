@@ -2,7 +2,7 @@ const { Order, OrderPayment, Customer, OrderItem, Item, sequelize } = require(".
 
 exports.create = async (req, res) => {
   try {
-    const { orderId, amount, paymentMode, paidOn } = req.body;
+    const { orderId, amount,discountAmount, paymentMode, paidOn } = req.body;
 
     if (!orderId || !amount || !paymentMode || !paidOn) {
       return res.status(400).json({ message: "All fields are required" });
@@ -18,6 +18,7 @@ exports.create = async (req, res) => {
       orderId,
       billNo: order.billNo,
       amount,
+      discountAmount,
       paymentMode,
       paidOn
     });
@@ -25,7 +26,7 @@ exports.create = async (req, res) => {
     // 🔹 Recalculate paid amount
     const payments = await OrderPayment.findAll({ where: { orderId } });
     const totalPaid = payments.reduce(
-      (sum, p) => sum + Number(p.amount),
+      (sum, p) => sum + Number(p.amount)+Number(p.discountAmount),
       0
     );
 
@@ -35,7 +36,6 @@ exports.create = async (req, res) => {
     if (totalPaid >= orderTotal) {
       paymentStatus = "paid";
     }
-
     // 🔹 UPDATE ORDER (THIS WAS MISSING/WRONG EARLIER)
     await Order.update(
       {
@@ -69,7 +69,7 @@ exports.getByOrder = async (req, res) => {
   res.json(payments);
 };
 exports.pay = async (req, res) => {
-  const { orderId, amount, paymentMode, paidOn } = req.body;
+  const { orderId, amount, discountAmount = 0,paymentMode, paidOn } = req.body;
 
   const order = await Order.findByPk(orderId);
   if (!order) return res.status(404).json({ message: "Order not found" });
@@ -78,6 +78,7 @@ exports.pay = async (req, res) => {
     orderId,
     billNo: order.billNo,
     amount,
+    discountAmount,
     paymentMode,
     paidOn
   });

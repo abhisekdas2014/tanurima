@@ -21,6 +21,10 @@ const OrderPayment = sequelize.define(
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false
     },
+    discountAmount: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false
+    },
     paymentMode: {
       type: DataTypes.ENUM("cash", "online"),
       allowNull: false

@@ -8,7 +8,7 @@ exports.getAll = async (req, res) => {
   const { count, rows } = await Customer.findAndCountAll({
     limit,
     offset,
-    order: [["id", "DESC"]]
+    order: [["name", "ASC"]]
   });
 
   const pages = Math.ceil(count / limit);

@@ -63,6 +63,7 @@ export default function Orders() {
 
   const [paymentForm, setPaymentForm] = useState({
     amount: "",
+    discountAmount: 0,
     paymentMode: "cash",
     paidOn: new Date().toISOString().slice(0, 10)
   });
@@ -160,12 +161,14 @@ useEffect(() => {
     await api.post("/order-payments", {
       orderId: paymentOrder.id,
       amount,
+      discountAmount: paymentForm.discountAmount,
       paymentMode: paymentForm.paymentMode,
       paidOn: paymentForm.paidOn
     });
 
     setPaymentForm({
       amount: "",
+      discountAmount: 0,
       paymentMode: "cash",
       paidOn: paymentForm.paidOn
     });
@@ -882,7 +885,18 @@ useEffect(() => {
                     }
                   />
                 </div>
+                <div className="mb-3">
+                  <label className="form-label">Discount Amount</label>
+                  <input type="number"
+                      className="form-control"
+                      placeholder="Enter amount"
+                      value={paymentForm.discountAmount}
+                      onChange={e =>
+                        setPaymentForm({ ...paymentForm, discountAmount: e.target.value })
+                      }
+                    />
 
+                </div>    
                 <button
                   className="btn btn-success w-100 mb-3"
                   onClick={savePayment}
@@ -905,7 +919,7 @@ useEffect(() => {
                         <div>
                           <div className="fw-bold">₹{p.amount}</div>
                           <small className="text-muted">
-                            {p.paymentMode} · {p.paidOn}
+                            {p.paymentMode} · {p.paidOn} Discount - {p.discountAmount}
                           </small>
                         </div>
                       </li>
