@@ -143,6 +143,7 @@ export default function PaymentHistory() {
                   <thead>
                     <tr>
                       <th>Amount</th>
+                      <th>Discount</th>
                       <th>Payment Date</th>
                       <th>Payment Mode</th>
                     </tr>
@@ -152,6 +153,7 @@ export default function PaymentHistory() {
                       <tr key={p.id}>
                         
                         <td>₹{p.amount}</td>
+                        <td>₹{p.discountAmount}</td>
                         <td>{p.paidOn}</td>
                         <td>{p.paymentMode}</td>
                       </tr>
