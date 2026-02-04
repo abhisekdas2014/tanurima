@@ -5,6 +5,8 @@ const controller = require("../controllers/customer.controller");
 router.use(auth);
 
 router.get("/", controller.getAll);
+//router.get("/all", controller.getAll);
+
 router.post("/", controller.create);
 router.put("/:id", controller.update);
 router.delete("/:id", controller.remove);

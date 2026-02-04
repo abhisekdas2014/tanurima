@@ -210,8 +210,23 @@ exports.getOne = async (req, res) => {
     return res.status(404).json({ message: "Order not found" });
   }
 
-  res.json(order);
+  // 🔹 CALCULATE TOTAL PROFIT
+  let totalProfit = 0;
+
+  order.items.forEach(i => {
+    const buying = Number(i.buyingPrice);
+    const selling = Number(i.sellingPrice);
+    const qty = Number(i.qty);
+
+    totalProfit += (selling - buying) * qty;
+  });
+
+  res.json({
+    ...order.toJSON(),
+    totalProfit: Number(totalProfit.toFixed(2))
+  });
 };
+
 exports.update = async (req, res) => {
   const t = await sequelize.transaction();
   const id = Number(req.params.id);

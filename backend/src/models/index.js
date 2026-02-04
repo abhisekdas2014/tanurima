@@ -6,6 +6,8 @@ const Item = require("./Item");
 const Stock = require("./Stock");
 const StockMovement = require("./StockMovement");
 const OrderPayment = require("./OrderPayment");
+const BuyerPayment = require("./BuyerPayment");
+const Voucher = require("./Voucher");
 
 
 // Customer → Orders
@@ -35,5 +37,7 @@ module.exports = {
   Item,
   Stock,
   OrderPayment,
-  StockMovement
+  StockMovement,
+  BuyerPayment,
+  Voucher
 };

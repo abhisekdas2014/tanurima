@@ -26,7 +26,7 @@ const OrderItem = sequelize.define(
       allowNull: false
     },
     qty: {
-      type: DataTypes.INTEGER,
+      type:  DataTypes.DECIMAL(10, 2),
       allowNull: false
     }
   },

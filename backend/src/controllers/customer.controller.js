@@ -1,26 +1,37 @@
 const { Customer } = require("../models");
 
 exports.getAll = async (req, res) => {
-  const page = Number(req.query.page || 1);
-  const limit = 10;
-  const offset = (page - 1) * limit;
-
-  const { count, rows } = await Customer.findAndCountAll({
-    limit,
-    offset,
+  if(req.query.page === "all") {
+      const rows = await Customer.findAll({
     order: [["name", "ASC"]]
   });
 
-  const pages = Math.ceil(count / limit);
-
   res.json({
-    data: rows,
-    pagination: {
-      total: count,
-      pages,
-      page
-    }
+    data: rows
   });
+  }else{
+    const page = Number(req.query.page || 1);
+    const limit = 10;
+    const offset = (page - 1) * limit;
+
+    const { count, rows } = await Customer.findAndCountAll({
+      limit,
+      offset,
+      order: [["name", "ASC"]]
+    });
+
+    const pages = Math.ceil(count / limit);
+
+    res.json({
+      data: rows,
+      pagination: {
+        total: count,
+        pages,
+        page
+      }
+  });
+  }
+  
 };
 
 

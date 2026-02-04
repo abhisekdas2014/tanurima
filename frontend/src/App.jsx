@@ -7,6 +7,8 @@ import Stock from "./pages/Stock";
 import Orders from "./pages/Orders";
 import Payments from "./pages/PaymentHistory";
 import ProtectedRoute from "./components/ProtectedRoute";
+import BuyerPayments from "./pages/BuyerPayments";
+import Voucher from "./pages/Voucher";
 
 export default function App() {
   return (
@@ -17,11 +19,9 @@ export default function App() {
       <Route path="/items" element={<ProtectedRoute><Items /></ProtectedRoute>} />
       <Route path="/stock" element={<ProtectedRoute><Stock /></ProtectedRoute>} />
       <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
-      <Route
-        path="/payment-history"
-        element={<ProtectedRoute><Payments /></ProtectedRoute>}
-      />
-
-    </Routes>
-  );
+      <Route path="/payment-history" element={<ProtectedRoute><Payments /></ProtectedRoute>}/>
+      <Route path="/buyer-payments" element={<ProtectedRoute><BuyerPayments /></ProtectedRoute>} />
+      <Route path="/voucher" element={<ProtectedRoute><Voucher /></ProtectedRoute>} />
+      </Routes>  );
+      
 }
