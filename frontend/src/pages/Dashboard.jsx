@@ -61,7 +61,7 @@ export default function Dashboard() {
               <ul className="list-group list-group-flush">
                 {stock.map(s => (
                   <li key={s.itemId} className="list-group-item d-flex justify-content-between">
-                    <span>{s.item.name}</span>
+                    <span><b>{s.item.name}</b> ₹{s.buyingPrice}</span>
                     <b>{s.qty}</b>
                   </li>
                 ))}
