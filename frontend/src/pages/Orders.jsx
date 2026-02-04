@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../api/axios";
 import Layout from "../layout/Layout";
+import Select from "react-select";
 
 export default function Orders() {
   /* ======================
@@ -76,8 +77,10 @@ export default function Orders() {
   /* ======================
      INITIAL LOAD
   ====================== */
+  //add query param to the customer with pagevalue =all to get all customers
+
   useEffect(() => {
-    api.get("/customers").then(r => setCustomers(r.data.data));
+    api.get("/customers", { params: { page: "all" } }).then(r => setCustomers(r.data.data));
     loadStock();
     loadOrders();
   }, [page]);
@@ -278,14 +281,21 @@ useEffect(() => {
       <form className="card p-3 p-md-4 mb-4" onSubmit={submit}>
         <div className="row g-3">
           <div className="col-12 col-md-4">
-            <select className="form-select"
-              value={header.customerId}
-              onChange={e => setHeader({ ...header, customerId: e.target.value })}>
-              <option value="">Select Customer</option>
-              {customers.map(c => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
+            <Select
+                placeholder="Select Customer"
+                options={customers.map(c => ({
+                  value: c.id,
+                  label: c.name
+                }))}
+                value={
+                  customers
+                    .map(c => ({ value: c.id, label: c.name }))
+                    .find(opt => opt.value === header.customerId) || null
+                }
+                onChange={opt =>
+                  setHeader({ ...header, customerId: opt?.value || "" })
+                }
+              />
           </div>
 
           <div className="col-12 col-md-4">
@@ -323,11 +333,26 @@ useEffect(() => {
 
         <div className="row g-3 align-items-end">
           <div className="col-12 col-md-4">
-            <select className="form-select"
-              value={currentItem.stockId}
-              onChange={e => {
-                const s = stock.find(x => x.id == e.target.value);
-                if (!s) return;
+            <Select
+              placeholder="Select Item"
+              options={stock.map(s => ({
+                value: s.id,
+                label: `${s.item.name} | ₹${s.buyingPrice} | qty ${s.qty}`,
+                stockObj: s
+              }))}
+              value={
+                stock
+                  .map(s => ({
+                    value: s.id,
+                    label: `${s.item.name} | ₹${s.buyingPrice} | qty ${s.qty}`,
+                    stockObj: s
+                  }))
+                  .find(opt => opt.value === currentItem.stockId) || null
+              }
+              onChange={opt => {
+                if (!opt) return;
+                const s = opt.stockObj;
+
                 setCurrentItem({
                   stockId: s.id,
                   itemId: s.item.id,
@@ -336,14 +361,8 @@ useEffect(() => {
                   sellingPrice: s.buyingPrice,
                   qty: 1
                 });
-              }}>
-              <option>Select Item</option>
-              {stock.map(s => (
-                <option key={s.id} value={s.id}>
-                  {s.item.name} | ₹{s.buyingPrice} | qty {s.qty}
-                </option>
-              ))}
-            </select>
+              }}
+            />
           </div>
 
           <div className="col-6 col-md-2">
@@ -413,20 +432,20 @@ useEffect(() => {
       <h4>Orders</h4>
 
       <div className="row mb-3">
-  <div className="col-12 col-md-3">
-    <input
-      className="form-control"
-      placeholder="Search Bill / Customer"
-      value={search}
-      onChange={e => setSearch(e.target.value)}
-    />
-  </div>
-</div>
+          <div className="col-12 col-md-3">
+            <input
+              className="form-control"
+              placeholder="Search Bill / Customer"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+      </div>
       <div className="table-responsive d-none d-md-block">
         <table className="table table-bordered">
           <thead>
             <tr>
-              <th>ID</th>
+              {/* <th>ID</th> */}
               <th>Bill</th>
               <th>Customer</th>
               <th>Date</th>
@@ -440,7 +459,7 @@ useEffect(() => {
               const isPaid = o.paymentStatus === "paid";
               return (
                 <tr key={o.id}>
-                  <td>{o.id}</td>
+                  {/* <td>{o.id}</td> */}
                   <td>{o.billNo}</td>
                   <td>{o.customer?.name}</td>
                   <td>{o.billDate}</td>
@@ -733,6 +752,14 @@ useEffect(() => {
                   </p>
                   <p className="mb-0">
                     <b>Date:</b> {invoiceData.billDate}
+                  </p>
+                  <p
+                    className={`mb-0 p-2 rounded ${Number(invoiceData?.totalProfit || 0) < 0
+                        ? "bg-danger-subtle text-danger"
+                        : "bg-success-subtle text-success"
+                      }`}
+                  >
+                    <b>Profit:</b> ₹{Number(invoiceData?.totalProfit || 0).toFixed(2)}
                   </p>
                 </div>
 
