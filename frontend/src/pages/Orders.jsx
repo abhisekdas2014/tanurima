@@ -8,10 +8,13 @@ export default function Orders() {
      MASTER DATA
   ====================== */
   const [customers, setCustomers] = useState([]);
+
+
+  
   const [stock, setStock] = useState([]);
   const [showInvoice, setShowInvoice] = useState(false);
   const [invoiceData, setInvoiceData] = useState(null);
-
+ 
 
   /* ======================
      CREATE ORDER
@@ -42,7 +45,7 @@ export default function Orders() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
-
+useEffect(() => { loadOrders(); }, [search, page]);
   /* ======================
      EDIT MODAL
   ====================== */
@@ -971,7 +974,25 @@ useEffect(() => {
         </div>
       )}
 
+<div className="d-flex justify-content-between align-items-center mt-3">
+        <button
+          className="btn btn-sm btn-secondary"
+          disabled={page <= 1}
+          onClick={() => setPage(p => p - 1)}
+        >
+          Prev
+        </button>
 
+        <span>Page {page} of {pages}</span>
+
+        <button
+          className="btn btn-sm btn-secondary"
+          disabled={page >= pages}
+          onClick={() => setPage(p => p + 1)}
+        >
+          Next
+        </button>
+      </div>
 
 
     </Layout>

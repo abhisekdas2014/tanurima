@@ -64,7 +64,10 @@ exports.create = async (req, res) => {
       totalAmount += qty * price;
 
       const stock = await Stock.findOne({
-        where: { itemId: it.itemId },
+        where: {
+          itemId: it.itemId,
+          buyingPrice: it.buyingPrice
+        },
         transaction: t,
         lock: t.LOCK.UPDATE
       });
@@ -73,9 +76,9 @@ exports.create = async (req, res) => {
         throw new Error(`Insufficient stock for item ${it.itemId}`);
       }
 
-      await stock.update(
-        { qty: stock.qty - qty },
-        { transaction: t }
+      await Stock.update(
+        { qty: sequelize.literal(`qty - ${qty}`) },
+        { where: { itemId: it.itemId, buyingPrice: it.buyingPrice }, transaction: t }
       );
 
       await OrderItem.create({
@@ -243,9 +246,9 @@ exports.update = async (req, res) => {
     // 🔹 REVERT stock
     for (const it of oldItems) {
 
-      await Stock.increment(
-        { qty: it.qty },
-        { where: { itemId: it.itemId }, transaction: t }
+      await Stock.update(
+        { qty: sequelize.literal(`qty + ${it.qty}`) },
+        { where: { itemId: it.itemId, buyingPrice: it.buyingPrice }, transaction: t }
       );
     }
     // 🔹 Delete old order items
@@ -261,7 +264,7 @@ exports.update = async (req, res) => {
       totalAmount += qty * price;
 
       const stock = await Stock.findOne({
-        where: { itemId: it.itemId },
+        where: { itemId: it.itemId, buyingPrice: it.buyingPrice },
         transaction: t,
         lock: t.LOCK.UPDATE
       });
@@ -270,9 +273,9 @@ exports.update = async (req, res) => {
         throw new Error("Insufficient stock");
       }
 
-      await stock.update(
-        { qty: stock.qty - qty },
-        { transaction: t }
+      await Stock.update(
+        { qty: sequelize.literal(`qty - ${qty}`) },
+        { where: { itemId: it.itemId, buyingPrice: it.buyingPrice }, transaction: t }
       );
 
       await OrderItem.create(
@@ -329,7 +332,7 @@ exports.remove = async (req, res) => {
     for (const it of items) {
       await Stock.increment(
         { qty: it.qty },
-        { where: { itemId: it.itemId }, transaction: t }
+        { where: { itemId: it.itemId, buyingPrice: it.buyingPrice }, transaction: t }
       );
       await StockMovement.create({
         itemId: it.itemId,
