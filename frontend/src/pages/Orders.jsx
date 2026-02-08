@@ -45,7 +45,7 @@ export default function Orders() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
-useEffect(() => { loadOrders(); }, [search, page]);
+//useEffect(() => { loadOrders(); }, [search, page]);
   /* ======================
      EDIT MODAL
   ====================== */
