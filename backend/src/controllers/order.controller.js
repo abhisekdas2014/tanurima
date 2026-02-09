@@ -44,7 +44,6 @@ exports.create = async (req, res) => {
 
     // ✅ Upload image to GoDaddy server
     let billImageUrl = null;
-    console.log(req.file);
     if (req.file) {
       billImageUrl = await uploadToServer(req.file);
     }
@@ -77,7 +76,7 @@ exports.create = async (req, res) => {
       }
 
       await Stock.update(
-        { qty: sequelize.literal(`qty - ${qty}`) },
+        { qty: sequelize.literal(`ROUND(qty - ${qty}, 6)`) },
         { where: { itemId: it.itemId, buyingPrice: it.buyingPrice }, transaction: t }
       );
 
@@ -136,6 +135,11 @@ exports.getAll = async (req, res) => {
         model: OrderPayment,
         as: "payments",
         attributes: []
+      },
+      {
+        model: OrderItem,
+        as: "items",
+        include: [{ model: Item, as: "item" }]
       }
     ],
     attributes: {
@@ -170,7 +174,15 @@ exports.getAll = async (req, res) => {
     const total = Number(o.getDataValue("totalAmount")) || 0;
     const paid = Number(o.getDataValue("paidAmount")) || 0;
     const due = Math.max(total - paid, 0);
-
+    let totalProfit = 0;
+    if (o.items && o.items.length > 0) {
+      o.items.forEach(i => {
+        const buying = Number(i.buyingPrice);
+        const selling = Number(i.sellingPrice);
+        const qty = Number(i.qty);
+        totalProfit += (selling - buying) * qty;
+      });
+    }
     let status = "unpaid";
     if (paid > 0 && due > 0) status = "partial";
     if (due === 0 && total > 0) status = "paid";
@@ -180,7 +192,9 @@ exports.getAll = async (req, res) => {
       totalAmount: total,
       paidAmount: paid,
       dueAmount: due,
-      paymentStatus: status
+      paymentStatus: status,
+      totalProfit: Number(totalProfit.toFixed(2))
+
     };
   });
 
@@ -247,7 +261,8 @@ exports.update = async (req, res) => {
     for (const it of oldItems) {
 
       await Stock.update(
-        { qty: sequelize.literal(`qty + ${it.qty}`) },
+        { qty: sequelize.literal(`ROUND(qty + ${it.qty}, 6)`) },
+
         { where: { itemId: it.itemId, buyingPrice: it.buyingPrice }, transaction: t }
       );
     }
@@ -274,7 +289,7 @@ exports.update = async (req, res) => {
       }
 
       await Stock.update(
-        { qty: sequelize.literal(`qty - ${qty}`) },
+        { qty: sequelize.literal(`ROUND(qty - ${qty}, 6)`) },
         { where: { itemId: it.itemId, buyingPrice: it.buyingPrice }, transaction: t }
       );
 

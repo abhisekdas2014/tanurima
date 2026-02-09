@@ -14,6 +14,8 @@ export default function Orders() {
   const [stock, setStock] = useState([]);
   const [showInvoice, setShowInvoice] = useState(false);
   const [invoiceData, setInvoiceData] = useState(null);
+  const [isCreating, setIsCreating] = useState(false);
+
  
 
   /* ======================
@@ -37,7 +39,14 @@ export default function Orders() {
   });
 
   const [items, setItems] = useState([]);
-
+  const formatDate = (dateString) => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+};
   /* ======================
      ORDER LIST
   ====================== */
@@ -106,7 +115,19 @@ useEffect(() => {
     setOrders(res.data.data);
     setPages(res.data.pagination.pages);
   };
-
+  const calculateProfit = (order) => {
+  if (!order.items || order.items.length === 0) return 0;
+  
+  const totalSelling = order.items.reduce((sum, item) => 
+    sum + (Number(item.sellingPrice) * Number(item.qty)), 0
+  );
+  
+  const totalBuying = order.items.reduce((sum, item) => 
+    sum + (Number(item.buyingPrice) * Number(item.qty)), 0
+  );
+  
+  return totalSelling - totalBuying;
+};
   /* ======================
      CREATE ORDER
   ====================== */
@@ -205,24 +226,28 @@ useEffect(() => {
     );
 
     try {
+      setIsCreating(true);
       await api.post("/orders", fd);
       alert("Order created");
       await loadOrders();
       await loadStock();
+
+      setHeader({
+        customerId: "",
+        billNo: "",
+        billDate: "",
+        comments: "",
+        billImage: null
+      });
+      setItems([]);
+      loadOrders();
     } catch (err) {
       alert(err.response?.data?.message || "Create failed");
+    } finally {
+      setIsCreating(false); // Stop loading
     }
 
 
-    setHeader({
-      customerId: "",
-      billNo: "",
-      billDate: "",
-      comments: "",
-      billImage: null
-    });
-    setItems([]);
-    loadOrders();
   };
 
   /* ======================
@@ -428,7 +453,20 @@ useEffect(() => {
           </div>
         )}
 
-        <button className="btn btn-success mt-3">Create Order</button>
+        <button 
+  type="submit" 
+  className="btn btn-success mt-3" 
+  disabled={isCreating}
+>
+  {isCreating ? (
+    <>
+      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+      Creating...
+    </>
+  ) : (
+    "Create Order"
+  )}
+</button>
       </form>
 
       {/* ================= ORDER LIST ================= */}
@@ -454,6 +492,7 @@ useEffect(() => {
               <th>Date</th>
               <th>Status</th>
               <th>Due</th>
+              <th>Profit/Loss</th>
               <th width="240">Actions</th>
             </tr>
           </thead>
@@ -465,7 +504,7 @@ useEffect(() => {
                   {/* <td>{o.id}</td> */}
                   <td>{o.billNo}</td>
                   <td>{o.customer?.name}</td>
-                  <td>{o.billDate}</td>
+                  <td>{formatDate(o.billDate)}</td>
                   <td>
                     <span className={`badge ${o.paymentStatus === "paid"
                         ? "bg-success"
@@ -476,7 +515,16 @@ useEffect(() => {
                       {o.paymentStatus || "unpaid"}
                     </span>
                   </td>
+                  
                   <td><b>₹{o.dueAmount ?? 0}</b></td>
+                  <td>
+                    <span className={`badge ${Number(calculateProfit(o) || 0) < 0
+                      ? "bg-danger-subtle text-danger"
+                      : "bg-success-subtle text-success"
+                      }`}>
+                      ₹{calculateProfit(o).toFixed(2)}
+                    </span>
+                  </td>
                   <td className="d-flex gap-1">
                     <button className="btn btn-sm btn-primary" disabled={isPaid} onClick={() => openEdit(o.id)}>Edit</button>
                     <button className="btn btn-sm btn-info" onClick={() => openInvoice(o.id)}>Invoice</button>
@@ -507,15 +555,23 @@ useEffect(() => {
             {o.paymentStatus || "unpaid"}
           </span>
         </div>
-
+        
         <div className="small text-muted">{o.customer?.name}</div>
-        <div className="small">{o.billDate}</div>
+        <div className="small">{formatDate(o.billDate)}</div>
 
         <div className="d-flex justify-content-between mt-2">
           <span>Due</span>
           <b>₹{o.dueAmount ?? 0}</b>
         </div>
-
+          <div className="d-flex justify-content-between mt-2">
+          <span>Profit/Loss</span>
+          <span className={`badge ${Number(calculateProfit(o) || 0) < 0
+            ? "bg-danger-subtle text-danger"
+            : "bg-success-subtle text-success"
+            }`}>
+            ₹{Number(calculateProfit(o) || 0).toFixed(2)}
+          </span>
+        </div>
         <div className="d-grid gap-2 mt-3">
           <button className="btn btn-outline-primary btn-sm" disabled={isPaid} onClick={() => openEdit(o.id)}>Edit</button>
           <button className="btn btn-outline-info btn-sm" onClick={() => openInvoice(o.id)}>Invoice</button>
@@ -619,12 +675,26 @@ useEffect(() => {
 
               <div className="row g-2 mb-3">
                 <div className="col-12 col-md-5">
-                  <select
-                    className="form-select"
-                    value={editNewItem.stockId}
-                    onChange={e => {
-                      const s = stock.find(x => x.id == e.target.value);
-                      if (!s) return;
+                  <Select
+                    placeholder="Select Item"
+                    options={stock.map(s => ({
+                      value: s.id,
+                      label: `${s.item.name} | ₹${s.buyingPrice} | qty ${s.qty}`,
+                      stockObj: s
+                    }))}
+                    value={
+                      stock
+                        .map(s => ({
+                          value: s.id,
+                          label: `${s.item.name} | ₹${s.buyingPrice} | qty ${s.qty}`,
+                          stockObj: s
+                        }))
+                        .find(opt => opt.value === editNewItem.stockId) || null
+                    }
+                    onChange={opt => {
+                      if (!opt) return;
+                      const s = opt.stockObj;
+
                       setEditNewItem({
                         stockId: s.id,
                         itemId: s.item.id,
@@ -634,14 +704,7 @@ useEffect(() => {
                         qty: 1
                       });
                     }}
-                  >
-                    <option value="">Select item</option>
-                    {stock.map(s => (
-                      <option key={s.id} value={s.id}>
-                        {s.item.name} | ₹{s.buyingPrice}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
 
                 <div className="col-6 col-md-2">
@@ -754,7 +817,7 @@ useEffect(() => {
                     <b>Customer:</b> {invoiceData.customer?.name}
                   </p>
                   <p className="mb-0">
-                    <b>Date:</b> {invoiceData.billDate}
+                    <b>Date:</b> {formatDate(invoiceData.billDate)}
                   </p>
                   <p
                     className={`mb-0 p-2 rounded ${Number(invoiceData?.totalProfit || 0) < 0

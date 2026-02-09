@@ -35,15 +35,30 @@ export default function Dashboard() {
         {/* Due List */}
         <div className="col-12 col-md-4">
           <div className="card p-3">
-            <h6>Due Amounts</h6>
+            <h6><b>Due Amounts</b></h6>
             {dues.length === 0 ? (
               <p className="text-muted small">No dues</p>
             ) : (
-              <ul className="list-group list-group-flush">
-                {dues.map(d => (
-                  <li key={d.orderId} className="list-group-item d-flex justify-content-between">
-                    <span>{d.customer.name}</span>
-                    <b>₹{d.dueAmount}</b>
+              <ul
+                className="list-group list-group-flush"
+                style={{
+                  maxHeight: '300px',
+                  overflowY: 'auto',
+                  scrollbarWidth: 'thin'
+                }}
+              >
+                {Object.entries(
+                  dues.reduce((acc, d) => {
+                    if (!acc[d.customer.name]) {
+                      acc[d.customer.name] = 0;
+                    }
+                    acc[d.customer.name] += Number(d.dueAmount || 0);
+                    return acc;
+                  }, {})
+                ).map(([customerName, totalDue]) => (
+                  <li key={customerName} className="list-group-item d-flex justify-content-between">
+                    <span>{customerName}</span>
+                    <b>₹{totalDue.toFixed(2)}</b>
                   </li>
                 ))}
               </ul>
@@ -52,13 +67,14 @@ export default function Dashboard() {
         </div>
 
         {/* Stock Summary */}
+        {/*add scroll bar to stock summary*/}
         <div className="col-12 col-md-4">
           <div className="card p-3">
-            <h6>Current Stock</h6>
+            <h6><b>Current Stock</b></h6>
             {stock.length === 0 ? (
               <p className="text-muted small">No stock</p>
             ) : (
-              <ul className="list-group list-group-flush">
+              <ul className="list-group list-group-flush" style={{ maxHeight: '300px', overflowY: 'auto', scrollbarWidth: 'thin' }}>
                 {stock.map(s => (
                   <li key={s.itemId} className="list-group-item d-flex justify-content-between">
                     <span><b>{s.item.name}</b> ₹{s.buyingPrice}</span>
@@ -73,9 +89,9 @@ export default function Dashboard() {
         {/* Profit / Loss */}
         <div className="col-12 col-md-4">
           <div className="card p-3">
-            <h6>Profit & Loss</h6>
-            <p className="mb-1">Profit: <b className="text-success">₹{profit.profit}</b></p>
-            <p className="mb-0">Loss: <b className="text-danger">₹{profit.loss}</b></p>
+            <h6><b>Profit & Loss</b></h6>
+            <p className="mb-1">Profit: <b className="text-success">₹{Number(profit.profit || 0).toFixed(2)}</b></p>
+            <p className="mb-0">Loss: <b className="text-danger">₹{Number(profit.loss || 0).toFixed(2)}</b></p>
           </div>
         </div>
       </div>
