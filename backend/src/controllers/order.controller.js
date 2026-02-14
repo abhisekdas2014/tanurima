@@ -70,9 +70,8 @@ exports.create = async (req, res) => {
         transaction: t,
         lock: t.LOCK.UPDATE
       });
-
       if (!stock || stock.qty < qty) {
-        throw new Error(`Insufficient stock for item ${it.itemId}`);
+        throw new Error(`Insufficient stock for item ${it.itemId} selling price ${it.sellingPrice}`);
       }
 
       await Stock.update(
