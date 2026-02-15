@@ -119,94 +119,100 @@ exports.getAll = async (req, res) => {
   const limit = 10;
   const offset = (page - 1) * limit;
 
-  const { rows, count } = await Order.findAndCountAll({
-    where: search
-      ? {
-        [Op.or]: [
-          { billNo: { [Op.like]: `%${search}%` } },
-          { "$customer.name$": { [Op.like]: `%${search}%` } }
-        ]
+  // Build WHERE conditions
+  let whereClause = "WHERE 1=1";
+  if (search) {
+    whereClause += ` AND (o.billNo LIKE '%${search}%' OR c.name LIKE '%${search}%')`;
+  }
+
+  // Main query with pagination
+  const sql = `
+    SELECT 
+      o.*,
+      c.name AS customer_name,
+      IFNULL(paid.total, 0) AS paidAmount,
+      o.totalAmount - IFNULL(paid.total, 0) AS dueAmount,
+      IFNULL(profit.total, 0) AS totalProfit
+    FROM orders o
+    LEFT JOIN customer c ON o.customerId = c.id
+    LEFT JOIN (
+      SELECT orderId, SUM(amount + IFNULL(discountAmount, 0)) AS total
+      FROM order_payments 
+      GROUP BY orderId
+    ) paid ON o.id = paid.orderId
+    LEFT JOIN (
+      SELECT orderId, SUM((sellingPrice - buyingPrice) * qty) AS total
+      FROM order_items 
+      GROUP BY orderId
+    ) profit ON o.id = profit.orderId
+    ${whereClause}
+    ORDER BY o.id DESC 
+    LIMIT ${limit} OFFSET ${offset}
+  `;
+
+  // Count query
+  const countSql = `
+    SELECT COUNT(*) as total 
+    FROM orders o
+    LEFT JOIN customer c ON o.customerId = c.id
+    ${whereClause}
+  `;
+
+  try {
+    const rows = await sequelize.query(sql, { type: sequelize.QueryTypes.SELECT });
+    const countResult = await sequelize.query(countSql, { type: sequelize.QueryTypes.SELECT });
+    
+   
+    
+    // Handle both single object and array cases
+    const rowsArray = Array.isArray(rows) ? rows : [rows];
+    const total = countResult[0]?.total || 0;
+
+    const data = rowsArray.map(o => {
+      const totalAmount = Number(o.totalAmount) || 0;
+      const paidAmount = Number(o.paidAmount) || 0;
+      const dueAmount = Math.max(totalAmount - paidAmount, 0);
+      const totalProfit = Number(o.totalProfit) || 0;
+     
+      
+      let status = "unpaid";
+      if (paidAmount > 0 && dueAmount > 0) status = "partial";
+      if (dueAmount === 0 && totalAmount > 0) status = "paid";
+
+      return {
+        id: o.id,
+        customerId: o.customerId,
+        billNo: o.billNo,
+        billDate: o.billDate,
+        totalAmount: totalAmount,
+        paidAmount: paidAmount,
+        dueAmount: dueAmount,
+        paymentStatus: status,
+        billImage: o.billImage,
+        comments: o.comments,
+        createdAt: o.createdAt,
+        updatedAt: o.updatedAt,
+        customer: {
+          id: o.customerId,
+          name: o.customer_name
+        },
+        totalProfit: Number(totalProfit.toFixed(2))
+      };
+    });
+
+    res.json({
+      data,
+      pagination: {
+        total,
+        page,
+        pages: Math.ceil(total / limit)
       }
-      : {},
-    include: [
-      { model: Customer, as: "customer" },
-      {
-        model: OrderPayment,
-        as: "payments",
-        attributes: []
-      },
-      {
-        model: OrderItem,
-        as: "items",
-        include: [{ model: Item, as: "item" }]
-      }
-    ],
-    attributes: {
-      include: [
-    [
-      literal(`(
-        SELECT IFNULL(SUM(amount + IFNULL(discountAmount, 0)), 0)
-        FROM order_payments
-        WHERE order_payments.orderId = Order.id
-      )`),
-      "paidAmount"
-    ],
-    [
-      literal(`(
-        totalAmount + (
-          SELECT IFNULL(SUM(amount - IFNULL(discountAmount, 0)), 0)
-          FROM order_payments
-          WHERE order_payments.orderId = Order.id
-        )
-      )`),
-      "dueAmount"
-    ]
-  ]
-    },
-    order: [["id", "DESC"]],
-    limit,
-    offset,
-    subQuery: false
-  });
-
-  const data = rows.map(o => {
-    const total = Number(o.getDataValue("totalAmount")) || 0;
-    const paid = Number(o.getDataValue("paidAmount")) || 0;
-    const due = Math.max(total - paid, 0);
-    let totalProfit = 0;
-    if (o.items && o.items.length > 0) {
-      o.items.forEach(i => {
-        const buying = Number(i.buyingPrice);
-        const selling = Number(i.sellingPrice);
-        const qty = Number(i.qty);
-        totalProfit += (selling - buying) * qty;
-      });
-    }
-    let status = "unpaid";
-    if (paid > 0 && due > 0) status = "partial";
-    if (due === 0 && total > 0) status = "paid";
-
-    return {
-      ...o.toJSON(),
-      totalAmount: total,
-      paidAmount: paid,
-      dueAmount: due,
-      paymentStatus: status,
-      totalProfit: Number(totalProfit.toFixed(2))
-
-    };
-  });
-
-  res.json({
-    data,
-    pagination: {
-      total: count,
-      page,
-      pages: Math.ceil(count / limit)
-    }
-  });
+    });
+  } catch (err) {
+    console.error('Query error:', err);
+    res.status(500).json({ message: err.message });
+  }
 };
-
 exports.getOne = async (req, res) => {
   const id = Number(req.params.id);
   if (!id) return res.status(400).json({ message: "Invalid order id" });

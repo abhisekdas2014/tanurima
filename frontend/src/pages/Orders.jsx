@@ -10,13 +10,14 @@ export default function Orders() {
   const [customers, setCustomers] = useState([]);
 
 
-  
+
   const [stock, setStock] = useState([]);
   const [showInvoice, setShowInvoice] = useState(false);
   const [invoiceData, setInvoiceData] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
- 
+
 
   /* ======================
      CREATE ORDER
@@ -40,13 +41,14 @@ export default function Orders() {
 
   const [items, setItems] = useState([]);
   const formatDate = (dateString) => {
-  if (!dateString) return "";
-  const date = new Date(dateString);
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const year = date.getFullYear();
-  return `${day}/${month}/${year}`;
-};
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
   /* ======================
      ORDER LIST
   ====================== */
@@ -54,7 +56,9 @@ export default function Orders() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
-//useEffect(() => { loadOrders(); }, [search, page]);
+
+
+  //useEffect(() => { loadOrders(); }, [search, page]);
   /* ======================
      EDIT MODAL
   ====================== */
@@ -95,18 +99,18 @@ export default function Orders() {
     api.get("/customers", { params: { page: "all" } }).then(r => setCustomers(r.data.data));
     loadStock();
     loadOrders();
-  }, [page]);
+  }, []);
   const loadStock = async () => {
     const res = await api.get("/stock");
     setStock(res.data);
   };
-useEffect(() => {
-  const t = setTimeout(() => {
-    loadOrders();
-  }, 400);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      loadOrders();
+    }, 400);
 
-  return () => clearTimeout(t);
-}, [search, page]);
+    return () => clearTimeout(t);
+  }, [search, page]);
   /* ======================
      LOAD ORDERS
   ====================== */
@@ -116,18 +120,18 @@ useEffect(() => {
     setPages(res.data.pagination.pages);
   };
   const calculateProfit = (order) => {
-  if (!order.items || order.items.length === 0) return 0;
-  
-  const totalSelling = order.items.reduce((sum, item) => 
-    sum + (Number(item.sellingPrice) * Number(item.qty)), 0
-  );
-  
-  const totalBuying = order.items.reduce((sum, item) => 
-    sum + (Number(item.buyingPrice) * Number(item.qty)), 0
-  );
-  
-  return totalSelling - totalBuying;
-};
+    if (!order.items || order.items.length === 0) return 0;
+
+    const totalSelling = order.items.reduce((sum, item) =>
+      sum + (Number(item.sellingPrice) * Number(item.qty)), 0
+    );
+
+    const totalBuying = order.items.reduce((sum, item) =>
+      sum + (Number(item.buyingPrice) * Number(item.qty)), 0
+    );
+
+    return totalSelling - totalBuying;
+  };
   /* ======================
      CREATE ORDER
   ====================== */
@@ -185,23 +189,38 @@ useEffect(() => {
       return;
     }
 
-    await api.post("/order-payments", {
-      orderId: paymentOrder.id,
-      amount,
-      discountAmount: paymentForm.discountAmount,
-      paymentMode: paymentForm.paymentMode,
-      paidOn: paymentForm.paidOn
-    });
+    try {
+      await api.post("/order-payments", {
+        orderId: paymentOrder.id,
+        amount,
+        discountAmount: paymentForm.discountAmount,
+        paymentMode: paymentForm.paymentMode,
+        paidOn: paymentForm.paidOn
+      });
 
-    setPaymentForm({
-      amount: "",
-      discountAmount: 0,
-      paymentMode: "cash",
-      paidOn: paymentForm.paidOn
-    });
+      // Reset form
+      setPaymentForm({
+        amount: "",
+        discountAmount: 0,
+        paymentMode: "cash",
+        paidOn: new Date().toISOString().slice(0, 10)
+      });
 
-    await openPayment(paymentOrder);
-    await loadOrders();
+      // Refresh payment history for the same order
+      const res = await api.get(`/order-payments/${paymentOrder.id}`);
+      setPayments(res.data);
+
+      // Refresh orders list to update payment status
+      await loadOrders();
+
+      // Show success message
+      alert("Payment added successfully!");
+      // Close modal after successful payment
+      setShowPayment(false);
+    } catch (err) {
+      console.error('Payment error:', err);
+      alert(err.response?.data?.message || "Payment failed");
+    }
   };
 
 
@@ -275,7 +294,10 @@ useEffect(() => {
       }
     ]);
   };
-  const saveEdit = async () => {
+const saveEdit = async () => {
+  setIsEditing(true);
+  
+  try {
     const fd = new FormData();
     fd.append("billNo", editHeader.billNo);
     fd.append("billDate", editHeader.billDate);
@@ -284,11 +306,17 @@ useEffect(() => {
     if (editImage) fd.append("billImage", editImage);
 
     await api.put(`/orders/${editHeader.id}`, fd);
+    alert("Order updated successfully!");
     setShowEdit(false);
     await loadOrders();
     await loadStock();
-  };
-
+  } catch (err) {
+    console.error('Edit error:', err);
+    alert(err.response?.data?.message || "Update failed");
+  } finally {
+    setIsEditing(false);
+  }
+};
 
 
   /* ======================
@@ -310,20 +338,20 @@ useEffect(() => {
         <div className="row g-3">
           <div className="col-12 col-md-4">
             <Select
-                placeholder="Select Customer"
-                options={customers.map(c => ({
-                  value: c.id,
-                  label: c.name
-                }))}
-                value={
-                  customers
-                    .map(c => ({ value: c.id, label: c.name }))
-                    .find(opt => opt.value === header.customerId) || null
-                }
-                onChange={opt =>
-                  setHeader({ ...header, customerId: opt?.value || "" })
-                }
-              />
+              placeholder="Select Customer"
+              options={customers.map(c => ({
+                value: c.id,
+                label: c.name
+              }))}
+              value={
+                customers
+                  .map(c => ({ value: c.id, label: c.name }))
+                  .find(opt => opt.value === header.customerId) || null
+              }
+              onChange={opt =>
+                setHeader({ ...header, customerId: opt?.value || "" })
+              }
+            />
           </div>
 
           <div className="col-12 col-md-4">
@@ -341,7 +369,7 @@ useEffect(() => {
             />
           </div>
 
-          <div className="col-12 col-md-6">
+          <div className="col-12 col-md-6" style={{ display: "none" }}>
             <textarea className="form-control"
               placeholder="Comments"
               value={header.comments}
@@ -349,7 +377,7 @@ useEffect(() => {
             />
           </div>
 
-          <div className="col-12 col-md-6">
+          <div className="col-12 col-md-6" style={{ display: "none" }}>
             <input type="file" className="form-control"
               onChange={e => setHeader({ ...header, billImage: e.target.files[0] })}
             />
@@ -363,11 +391,13 @@ useEffect(() => {
           <div className="col-12 col-md-4">
             <Select
               placeholder="Select Item"
-              options={stock.map(s => ({
-                value: s.id,
-                label: `${s.item.name} | ₹${s.buyingPrice} | qty ${s.qty}`,
-                stockObj: s
-              }))}
+              options={stock
+                .filter(s => s.qty > 0) // Only show items with quantity > 0
+                .map(s => ({
+                  value: s.id,
+                  label: `${s.item.name} | ₹${s.buyingPrice} | qty ${s.qty}`,
+                  stockObj: s
+                }))}
               value={
                 stock
                   .map(s => ({
@@ -453,34 +483,34 @@ useEffect(() => {
           </div>
         )}
 
-        <button 
-  type="submit" 
-  className="btn btn-success mt-3" 
-  disabled={isCreating}
->
-  {isCreating ? (
-    <>
-      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-      Creating...
-    </>
-  ) : (
-    "Create Order"
-  )}
-</button>
+        <button
+          type="submit"
+          className="btn btn-success mt-3"
+          disabled={isCreating}
+        >
+          {isCreating ? (
+            <>
+              <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+              Creating...
+            </>
+          ) : (
+            "Create Order"
+          )}
+        </button>
       </form>
 
       {/* ================= ORDER LIST ================= */}
       <h4>Orders</h4>
 
       <div className="row mb-3">
-          <div className="col-12 col-md-3">
-            <input
-              className="form-control"
-              placeholder="Search Bill / Customer"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
-          </div>
+        <div className="col-12 col-md-3">
+          <input
+            className="form-control"
+            placeholder="Search Bill / Customer"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
       </div>
       <div className="table-responsive d-none d-md-block">
         <table className="table table-bordered">
@@ -507,22 +537,19 @@ useEffect(() => {
                   <td>{formatDate(o.billDate)}</td>
                   <td>
                     <span className={`badge ${o.paymentStatus === "paid"
-                        ? "bg-success"
-                        : o.paymentStatus === "partial"
-                          ? "bg-warning text-dark"
-                          : "bg-danger"
+                      ? "bg-success"
+                      : o.paymentStatus === "partial"
+                        ? "bg-warning text-dark"
+                        : "bg-danger"
                       }`}>
                       {o.paymentStatus || "unpaid"}
                     </span>
                   </td>
-                  
+
                   <td><b>₹{o.dueAmount ?? 0}</b></td>
                   <td>
-                    <span className={`badge ${Number(calculateProfit(o) || 0) < 0
-                      ? "bg-danger-subtle text-danger"
-                      : "bg-success-subtle text-success"
-                      }`}>
-                      ₹{calculateProfit(o).toFixed(2)}
+                    <span className={o.totalProfit < 0 ? "bg-danger-subtle text-danger" : "bg-success-subtle text-success"}>
+                      ₹{o.totalProfit}
                     </span>
                   </td>
                   <td className="d-flex gap-1">
@@ -538,50 +565,49 @@ useEffect(() => {
         </table>
       </div>
       {/* ===== MOBILE CARDS ===== */}
-<div className="d-md-none">
-  {orders.map(o => {
-    const isPaid = o.paymentStatus === "paid";
-    return (
-      <div key={o.id} className="border rounded p-3 mb-2">
-        <div className="d-flex justify-content-between mb-1">
-          <b>{o.billNo}</b>
-          <span className={`badge ${
-            o.paymentStatus === "paid"
-              ? "bg-success"
-              : o.paymentStatus === "partial"
-              ? "bg-warning text-dark"
-              : "bg-danger"
-          }`}>
-            {o.paymentStatus || "unpaid"}
-          </span>
-        </div>
-        
-        <div className="small text-muted">{o.customer?.name}</div>
-        <div className="small">{formatDate(o.billDate)}</div>
+      <div className="d-md-none">
+        {orders.map(o => {
+          const isPaid = o.paymentStatus === "paid";
+          return (
+            <div key={o.id} className="border rounded p-3 mb-2">
+              <div className="d-flex justify-content-between mb-1">
+                <b>{o.billNo}</b>
+                <span className={`badge ${o.paymentStatus === "paid"
+                  ? "bg-success"
+                  : o.paymentStatus === "partial"
+                    ? "bg-warning text-dark"
+                    : "bg-danger"
+                  }`}>
+                  {o.paymentStatus || "unpaid"}
+                </span>
+              </div>
 
-        <div className="d-flex justify-content-between mt-2">
-          <span>Due</span>
-          <b>₹{o.dueAmount ?? 0}</b>
-        </div>
-          <div className="d-flex justify-content-between mt-2">
-          <span>Profit/Loss</span>
-          <span className={`badge ${Number(calculateProfit(o) || 0) < 0
-            ? "bg-danger-subtle text-danger"
-            : "bg-success-subtle text-success"
-            }`}>
-            ₹{Number(calculateProfit(o) || 0).toFixed(2)}
-          </span>
-        </div>
-        <div className="d-grid gap-2 mt-3">
-          <button className="btn btn-outline-primary btn-sm" disabled={isPaid} onClick={() => openEdit(o.id)}>Edit</button>
-          <button className="btn btn-outline-info btn-sm" onClick={() => openInvoice(o.id)}>Invoice</button>
-          <button className="btn btn-outline-warning btn-sm" disabled={isPaid} onClick={() => openPayment(o)}>Pay</button>
-          <button className="btn btn-outline-danger btn-sm" disabled={isPaid} onClick={() => removeOrder(o.id)}>Delete</button>
-        </div>
+              <div className="small text-muted">{o.customer?.name}</div>
+              <div className="small">{formatDate(o.billDate)}</div>
+
+              <div className="d-flex justify-content-between mt-2">
+                <span>Due</span>
+                <b>₹{o.dueAmount ?? 0}</b>
+              </div>
+              <div className="d-flex justify-content-between mt-2">
+                <span>Profit/Loss</span>
+                <span className={`badge ${Number(calculateProfit(o) || 0) < 0
+                  ? "bg-danger-subtle text-danger"
+                  : "bg-success-subtle text-success"
+                  }`}>
+                  ₹{Number(calculateProfit(o) || 0).toFixed(2)}
+                </span>
+              </div>
+              <div className="d-grid gap-2 mt-3">
+                <button className="btn btn-outline-primary btn-sm" disabled={isPaid} onClick={() => openEdit(o.id)}>Edit</button>
+                <button className="btn btn-outline-info btn-sm" onClick={() => openInvoice(o.id)}>Invoice</button>
+                <button className="btn btn-outline-warning btn-sm" disabled={isPaid} onClick={() => openPayment(o)}>Pay</button>
+                <button className="btn btn-outline-danger btn-sm" disabled={isPaid} onClick={() => removeOrder(o.id)}>Delete</button>
+              </div>
+            </div>
+          );
+        })}
       </div>
-    );
-  })}
-</div>
       {/* ================= EDIT MODAL ================= */}
       {showEdit && (
         <div className="modal show d-block" style={{ background: "#0008" }}>
@@ -656,12 +682,18 @@ useEffect(() => {
 
                     <div className="col-12 text-end">
                       <button
-                        className="btn btn-danger btn-sm"
-                        onClick={() =>
-                          setEditItems(editItems.filter((_, i2) => i2 !== idx))
-                        }
+                        className="btn btn-success w-100"
+                        onClick={saveEdit}
+                        disabled={isEditing}
                       >
-                        Remove
+                        {isEditing ? (
+                          <>
+                            <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            Saving...
+                          </>
+                        ) : (
+                          "Save"
+                        )}
                       </button>
                     </div>
                   </div>
@@ -677,7 +709,7 @@ useEffect(() => {
                 <div className="col-12 col-md-5">
                   <Select
                     placeholder="Select Item"
-                    options={stock.map(s => ({
+                    options={stock.filter(s => s.qty > 0).map(s => ({
                       value: s.id,
                       label: `${s.item.name} | ₹${s.buyingPrice} | qty ${s.qty}`,
                       stockObj: s
@@ -821,8 +853,8 @@ useEffect(() => {
                   </p>
                   <p
                     className={`mb-0 p-2 rounded ${Number(invoiceData?.totalProfit || 0) < 0
-                        ? "bg-danger-subtle text-danger"
-                        : "bg-success-subtle text-success"
+                      ? "bg-danger-subtle text-danger"
+                      : "bg-success-subtle text-success"
                       }`}
                   >
                     <b>Profit:</b> ₹{Number(invoiceData?.totalProfit || 0).toFixed(2)}
@@ -981,15 +1013,15 @@ useEffect(() => {
                 <div className="mb-3">
                   <label className="form-label">Discount Amount</label>
                   <input type="number"
-                      className="form-control"
-                      placeholder="Enter amount"
-                      value={paymentForm.discountAmount}
-                      onChange={e =>
-                        setPaymentForm({ ...paymentForm, discountAmount: e.target.value })
-                      }
-                    />
+                    className="form-control"
+                    placeholder="Enter amount"
+                    value={paymentForm.discountAmount}
+                    onChange={e =>
+                      setPaymentForm({ ...paymentForm, discountAmount: e.target.value })
+                    }
+                  />
 
-                </div>    
+                </div>
                 <button
                   className="btn btn-success w-100 mb-3"
                   onClick={savePayment}
@@ -1037,7 +1069,7 @@ useEffect(() => {
         </div>
       )}
 
-<div className="d-flex justify-content-between align-items-center mt-3">
+      <div className="d-flex justify-content-between align-items-center mt-3">
         <button
           className="btn btn-sm btn-secondary"
           disabled={page <= 1}
