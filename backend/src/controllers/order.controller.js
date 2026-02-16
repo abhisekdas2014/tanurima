@@ -118,12 +118,37 @@ exports.getAll = async (req, res) => {
   const page = Number(req.query.page || 1);
   const limit = 10;
   const offset = (page - 1) * limit;
+  const paymentStatus = req.query.paymentStatus ? req.query.paymentStatus.split(',') : [];
 
   // Build WHERE conditions
   let whereClause = "WHERE 1=1";
   if (search) {
     whereClause += ` AND (o.billNo LIKE '%${search}%' OR c.name LIKE '%${search}%')`;
   }
+  
+if (paymentStatus.length > 0) {
+  const statusConditions = paymentStatus.map(status => {
+    switch(status) {
+      case 'paid': return `(
+        o.totalAmount > 0 AND 
+        IFNULL((SELECT SUM(amount + IFNULL(discountAmount, 0)) FROM order_payments WHERE orderId = o.id), 0) >= o.totalAmount
+      )`;
+      case 'partial': return `(
+        IFNULL((SELECT SUM(amount + IFNULL(discountAmount, 0)) FROM order_payments WHERE orderId = o.id), 0) > 0 AND 
+        IFNULL((SELECT SUM(amount + IFNULL(discountAmount, 0)) FROM order_payments WHERE orderId = o.id), 0) < o.totalAmount
+      )`;
+      case 'unpaid': return `(
+        IFNULL((SELECT SUM(amount + IFNULL(discountAmount, 0)) FROM order_payments WHERE orderId = o.id), 0) = 0 OR 
+        IFNULL((SELECT SUM(amount + IFNULL(discountAmount, 0)) FROM order_payments WHERE orderId = o.id), 0) < o.totalAmount
+      )`;
+      default: return '';
+    }
+  }).filter(condition => condition !== '');
+  
+  if (statusConditions.length > 0) {
+    whereClause += ` AND (${statusConditions.join(' OR ')})`;
+  }
+}
 
   // Main query with pagination
   const sql = `
@@ -162,8 +187,6 @@ exports.getAll = async (req, res) => {
     const rows = await sequelize.query(sql, { type: sequelize.QueryTypes.SELECT });
     const countResult = await sequelize.query(countSql, { type: sequelize.QueryTypes.SELECT });
     
-   
-    
     // Handle both single object and array cases
     const rowsArray = Array.isArray(rows) ? rows : [rows];
     const total = countResult[0]?.total || 0;
@@ -173,7 +196,6 @@ exports.getAll = async (req, res) => {
       const paidAmount = Number(o.paidAmount) || 0;
       const dueAmount = Math.max(totalAmount - paidAmount, 0);
       const totalProfit = Number(o.totalProfit) || 0;
-     
       
       let status = "unpaid";
       if (paidAmount > 0 && dueAmount > 0) status = "partial";

@@ -16,6 +16,11 @@ export default function Orders() {
   const [invoiceData, setInvoiceData] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState({
+    paid: true,
+    partial: true,
+    unpaid: true
+  });
 
 
 
@@ -110,12 +115,18 @@ export default function Orders() {
     }, 400);
 
     return () => clearTimeout(t);
-  }, [search, page]);
+  }, [search, page, paymentStatusFilter]);
   /* ======================
      LOAD ORDERS
   ====================== */
   const loadOrders = async () => {
-    const res = await api.get("/orders", { params: { search, page } });
+    const res = await api.get("/orders", {
+      params: {
+        search,
+        page,
+        paymentStatus: Object.keys(paymentStatusFilter).filter(key => paymentStatusFilter[key]).join(',')
+      }
+    });
     setOrders(res.data.data);
     setPages(res.data.pagination.pages);
   };
@@ -294,29 +305,29 @@ export default function Orders() {
       }
     ]);
   };
-const saveEdit = async () => {
-  setIsEditing(true);
-  
-  try {
-    const fd = new FormData();
-    fd.append("billNo", editHeader.billNo);
-    fd.append("billDate", editHeader.billDate);
-    fd.append("comments", editHeader.comments || "");
-    fd.append("items", JSON.stringify(editItems));
-    if (editImage) fd.append("billImage", editImage);
+  const saveEdit = async () => {
+    setIsEditing(true);
 
-    await api.put(`/orders/${editHeader.id}`, fd);
-    alert("Order updated successfully!");
-    setShowEdit(false);
-    await loadOrders();
-    await loadStock();
-  } catch (err) {
-    console.error('Edit error:', err);
-    alert(err.response?.data?.message || "Update failed");
-  } finally {
-    setIsEditing(false);
-  }
-};
+    try {
+      const fd = new FormData();
+      fd.append("billNo", editHeader.billNo);
+      fd.append("billDate", editHeader.billDate);
+      fd.append("comments", editHeader.comments || "");
+      fd.append("items", JSON.stringify(editItems));
+      if (editImage) fd.append("billImage", editImage);
+
+      await api.put(`/orders/${editHeader.id}`, fd);
+      alert("Order updated successfully!");
+      setShowEdit(false);
+      await loadOrders();
+      await loadStock();
+    } catch (err) {
+      console.error('Edit error:', err);
+      alert(err.response?.data?.message || "Update failed");
+    } finally {
+      setIsEditing(false);
+    }
+  };
 
 
   /* ======================
@@ -511,6 +522,50 @@ const saveEdit = async () => {
             onChange={e => setSearch(e.target.value)}
           />
         </div>
+        <div className="col-12 col-md-9">
+          <div className="d-flex gap-3 align-items-center">
+            <label className="form-label mb-0 me-2">Payment Status:</label>
+            <div className="form-check">
+              <input
+                className="form-check-input"
+                type="checkbox"
+                id="filter-paid"
+                checked={paymentStatusFilter.paid}
+                onChange={e => setPaymentStatusFilter({
+                  ...paymentStatusFilter,
+                  paid: e.target.checked
+                })}
+              />
+              <label className="form-check-label" htmlFor="filter-paid">Paid</label>
+            </div>
+            <div className="form-check">
+              <input
+                className="form-check-input"
+                type="checkbox"
+                id="filter-partial"
+                checked={paymentStatusFilter.partial}
+                onChange={e => setPaymentStatusFilter({
+                  ...paymentStatusFilter,
+                  partial: e.target.checked
+                })}
+              />
+              <label className="form-check-label" htmlFor="filter-partial">Partial</label>
+            </div>
+            <div className="form-check">
+              <input
+                className="form-check-input"
+                type="checkbox"
+                id="filter-unpaid"
+                checked={paymentStatusFilter.unpaid}
+                onChange={e => setPaymentStatusFilter({
+                  ...paymentStatusFilter,
+                  unpaid: e.target.checked
+                })}
+              />
+              <label className="form-check-label" htmlFor="filter-unpaid">Unpaid</label>
+            </div>
+          </div>
+        </div>
       </div>
       <div className="table-responsive d-none d-md-block">
         <table className="table table-bordered">
@@ -521,6 +576,7 @@ const saveEdit = async () => {
               <th>Customer</th>
               <th>Date</th>
               <th>Status</th>
+              <th>Bill Amount</th>
               <th>Due</th>
               <th>Profit/Loss</th>
               <th width="240">Actions</th>
@@ -546,6 +602,7 @@ const saveEdit = async () => {
                     </span>
                   </td>
 
+                  <td><b>₹{o.totalAmount ?? 0}</b></td>
                   <td><b>₹{o.dueAmount ?? 0}</b></td>
                   <td>
                     <span className={o.totalProfit < 0 ? "bg-danger-subtle text-danger" : "bg-success-subtle text-success"}>

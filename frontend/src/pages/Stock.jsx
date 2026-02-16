@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import api from "../api/axios";
 import Layout from "../layout/Layout";
 
@@ -61,9 +61,19 @@ export default function Stock() {
     load();
   };
 
-  const filtered = stock.filter(s =>
-    s.item?.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = useMemo(() => {
+    return stock.filter(s =>
+      s.item?.name.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [stock, search]);
+
+  const sortedStock = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      const nameA = a.item?.name || '';
+      const nameB = b.item?.name || '';
+      return nameA.localeCompare(nameB);
+    });
+  }, [filtered]);
 
   return (
     <Layout>
@@ -136,7 +146,7 @@ export default function Stock() {
           </tr>
         </thead>
         <tbody>
-          {filtered.map(s => (
+          {sortedStock.map(s => (
             <tr key={s.id}>
               <td>{s.item?.name}</td>
               <td>{s.qty}</td>
