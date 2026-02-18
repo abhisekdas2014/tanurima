@@ -37,7 +37,7 @@ app.use("/api/voucher", require("./routes/voucher.routes"));
 
 /* ===== HEALTH CHECK ===== */
 app.get("/", (req, res) => {
-  res.json({ status: "Tanurima backend running" });
+  res.json({ status: "Admin Panel backend running" });
 });
 
 /* ===== ERROR HANDLER ===== */

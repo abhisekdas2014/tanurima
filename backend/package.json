@@ -1,7 +1,7 @@
 {
   "name": "tanurima-backend",
   "version": "1.0.0",
-  "description": "Tanurima Admin Panel Backend",
+  "description": "Admin Panel Backend",
   "main": "src/server.js",
   "type": "commonjs",
   "scripts": {
