@@ -519,7 +519,10 @@ export default function Orders() {
             className="form-control"
             placeholder="Search Bill / Customer"
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={e => {
+              setSearch(e.target.value);
+              setPage(1); // Reset to page 1 when searching
+            }}
           />
         </div>
         <div className="col-12 col-md-9">
