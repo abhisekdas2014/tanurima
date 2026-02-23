@@ -3,8 +3,8 @@ const { Order, OrderPayment, Customer, OrderItem, Item, sequelize } = require(".
 exports.create = async (req, res) => {
   try {
     const { orderId, amount,discountAmount, paymentMode, paidOn } = req.body;
-
-    if (!orderId || !amount || !paymentMode || !paidOn) {
+   
+    if (!orderId ||!paymentMode || !paidOn || amount === 0 && discountAmount === 0) {
       return res.status(400).json({ message: "All fields are required" });
     }
 

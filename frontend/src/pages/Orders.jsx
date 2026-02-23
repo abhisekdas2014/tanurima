@@ -190,10 +190,10 @@ export default function Orders() {
     const amount = Number(paymentForm.amount);
     const due = paymentOrder.dueAmount;
 
-    if (!amount || amount <= 0) {
-      alert("Enter valid amount");
-      return;
-    }
+    // if (!amount ) {
+    //   alert("Enter valid amount");
+    //   return;
+    // }
 
     if (amount > due) {
       alert(`Over-payment not allowed. Due amount: ₹${due}`);
@@ -739,18 +739,12 @@ export default function Orders() {
 
                     <div className="col-12 text-end">
                       <button
-                        className="btn btn-success w-100"
-                        onClick={saveEdit}
-                        disabled={isEditing}
+                        className="btn btn-danger btn-sm"
+                        onClick={() =>
+                          setEditItems(editItems.filter((_, i2) => i2 !== idx))
+                        }
                       >
-                        {isEditing ? (
-                          <>
-                            <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                            Saving...
-                          </>
-                        ) : (
-                          "Save"
-                        )}
+                        Remove
                       </button>
                     </div>
                   </div>
@@ -861,20 +855,20 @@ export default function Orders() {
               </div>
 
               {/* ===== ACTIONS ===== */}
-              <div className="d-flex flex-column flex-md-row gap-2 mt-3">
-                <button
-                  className="btn btn-secondary w-100"
-                  onClick={() => setShowEdit(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  className="btn btn-success w-100"
-                  onClick={saveEdit}
-                >
-                  Save
-                </button>
-              </div>
+              <button
+                className="btn btn-success w-100"
+                onClick={saveEdit}
+                disabled={isEditing}
+              >
+                {isEditing ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    Saving...
+                  </>
+                ) : (
+                  'Save'
+                )}
+              </button>
 
             </div>
           </div>

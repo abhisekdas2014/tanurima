@@ -6,6 +6,7 @@ export default function Dashboard() {
   const [dues, setDues] = useState([]);
   const [stock, setStock] = useState([]);
   const [profit, setProfit] = useState({ profit: 0, loss: 0 });
+  const [vouchers, setVouchers] = useState([]);
 
   useEffect(() => {
     loadData();
@@ -13,15 +14,17 @@ export default function Dashboard() {
 
   const loadData = async () => {
     try {
-      const [d, s, p] = await Promise.all([
+      const [d, s, p, v] = await Promise.all([
         api.get("/dashboard/dues"),
         api.get("/dashboard/stock-summary"),
-        api.get("/dashboard/profit")
+        api.get("/dashboard/profit"),
+        api.get("/dashboard/vouchers")
       ]);
 
       setDues(d.data || []);
       setStock(s.data || []);
       setProfit(p.data || { profit: 0, loss: 0 });
+      setVouchers(v.data || { totalPaidAmount: 0 });
     } catch (err) {
       console.error(err);
     }
@@ -29,7 +32,8 @@ export default function Dashboard() {
 
   return (
     <Layout>
-      <h4>Dashboard</h4>
+      <div className="dashboard-bg">
+<h4>Dashboard</h4>
 
       <div className="row g-3">
         {/* Due List */}
@@ -92,9 +96,13 @@ export default function Dashboard() {
             <h6><b>Profit & Loss</b></h6>
             <p className="mb-1">Profit: <b className="text-success">₹{Number(profit.profit || 0).toFixed(2)}</b></p>
             <p className="mb-0">Loss: <b className="text-danger">₹{Number(profit.loss || 0).toFixed(2)}</b></p>
+            <p className="mb-0">Vouchers: <b className="text-info">₹{Number(vouchers.totalPaidAmount || 0).toFixed(2)}</b></p>
           </div>
         </div>
       </div>
+
+      </div>
+      
     </Layout>
   );
 }

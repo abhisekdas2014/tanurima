@@ -5,6 +5,8 @@ const { Op } = require("sequelize");
 exports.getHistory = async (req, res) => {
   try {
     const { from, to } = req.query;
+    
+    //console.log('Query params:', { from, to }); // Debug line
 
     const paymentWhere = {};
 
@@ -12,11 +14,12 @@ exports.getHistory = async (req, res) => {
       paymentWhere.paidOn = {
         [Op.between]: [from, to]
       };
+      //console.log('Payment where clause:', paymentWhere); // Debug line
     }
 
     const orders = await Order.findAll({
       where: {
-        paymentStatus: { [Op.ne]: "unpaid" } // paid or partial only
+        paymentStatus: { [Op.ne]: "unpaid" }
       },
       include: [
         {
@@ -30,10 +33,10 @@ exports.getHistory = async (req, res) => {
           as: "customer"
         }
       ],
-      order: [["id", "DESC"]],
-      limit: from && to ? undefined : 10
+      order: [["id", "DESC"]]
     });
 
+    console.log('Found orders:', orders.length); // Debug line
     res.json(orders);
   } catch (err) {
     console.error(err);

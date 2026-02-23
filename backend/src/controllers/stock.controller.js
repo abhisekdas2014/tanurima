@@ -76,7 +76,11 @@ exports.update = async (req, res) => {
     const qty = Number(req.body.qty);
     const buyingPrice = Number(req.body.buyingPrice);
 
-    if (!qty || !buyingPrice) {
+     // Fix: Proper validation that allows 0
+    if (req.body.qty === undefined || req.body.qty === null || 
+        req.body.buyingPrice === undefined || req.body.buyingPrice === null ||
+        isNaN(qty) || isNaN(buyingPrice) || 
+        qty < 0 || buyingPrice < 0) {
       return res.status(400).json({ message: "Invalid input" });
     }
 
