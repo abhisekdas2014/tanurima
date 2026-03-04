@@ -1,3 +1,35 @@
+exports.getHistory = async (req, res) => {
+  try {
+    const itemId = req.query.itemId ? Number(req.query.itemId) : null;
+
+    const where = {};
+    if (itemId) where.itemId = itemId;
+
+    const rows = await StockHistory.findAll({
+      where,
+      include: [{ model: Item, as: "item", attributes: ["id", "name"] }],
+      order: [["createdAt", "DESC"]]
+    });
+
+    const data = rows.map(r => ({
+      id: r.id,
+      stockId: r.stockId,
+      itemId: r.itemId,
+      itemName: r.item?.name || "",
+      action: r.action,
+      qtyBefore: r.qtyBefore,
+      qtyAfter: r.qtyAfter,
+      buyingPriceBefore: r.buyingPriceBefore,
+      buyingPriceAfter: r.buyingPriceAfter,
+      createdAt: r.createdAt
+    }));
+
+    res.json(data);
+  } catch (err) {
+    console.error("STOCK HISTORY ERROR:", err);
+    res.status(500).json({ message: "Fetch failed" });
+  }
+};
 const { Stock, Item } = require("../models");
 
 /* =========================
