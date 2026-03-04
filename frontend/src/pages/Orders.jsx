@@ -651,11 +651,11 @@ export default function Orders() {
               </div>
               <div className="d-flex justify-content-between mt-2">
                 <span>Profit/Loss</span>
-                <span className={`badge ${Number(o.totalProfit || 0) < 0
+                <span className={`badge ${Number(calculateProfit(o) || 0) < 0
                   ? "bg-danger-subtle text-danger"
                   : "bg-success-subtle text-success"
                   }`}>
-                  ₹{Number(o.totalProfit || 0).toFixed(2)}
+                  ₹{Number(calculateProfit(o) || 0).toFixed(2)}
                 </span>
               </div>
               <div className="d-grid gap-2 mt-3">

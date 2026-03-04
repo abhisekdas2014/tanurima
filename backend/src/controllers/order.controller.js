@@ -396,41 +396,6 @@ exports.remove = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-exports.getItemHistory = async (req, res) => {
-  const itemId = Number(req.params.itemId);
 
-  if (!itemId) {
-    return res.status(400).json({ message: "Invalid item id" });
-  }
 
-  try {
-    const rows = await OrderItem.findAll({
-      where: { itemId },
-      include: [
-        {
-          model: Order,
-          include: [{ model: Customer, as: "customer" }]
-        }
-      ],
-      order: [[Order, "billDate", "DESC"]]
-    });
 
-    const data = rows.map(oi => {
-      const order = oi.Order;
-      return {
-        orderId: oi.orderId,
-        billNo: order?.billNo,
-        billDate: order?.billDate,
-        customerName: order?.customer?.name || "",
-        qty: Number(oi.qty),
-        sellingPrice: Number(oi.sellingPrice),
-        lineTotal: Number(oi.qty) * Number(oi.sellingPrice)
-      };
-    });
-
-    res.json(data);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: err.message });
-  }
-};
