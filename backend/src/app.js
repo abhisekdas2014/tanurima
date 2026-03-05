@@ -5,9 +5,22 @@ const sequelize = require("./config/database");
 
 const app = express();
 
-/* ===== GLOBAL MIDDLEWARE ===== */
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://tanurima-1.onrender.com"
+];
+
 app.use(cors({
-  origin: "http://localhost:5173",
+  origin: function (origin, callback) {
+    // allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      return callback(new Error("Not allowed by CORS"));
+    }
+  },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"]
